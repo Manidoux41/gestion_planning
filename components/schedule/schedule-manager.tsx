@@ -4,12 +4,11 @@ import { FormEvent, useState, useTransition } from "react";
 import { CalendarDays, CheckSquare, ChevronLeft, ChevronRight, Plus, Trash2, X } from "lucide-react";
 import type { ScheduleEvent, Task } from "@/lib/db/domain-types";
 import { createScheduleEventAction, deleteScheduleEventAction } from "@/app/actions/schedule";
-import { toIsoDate } from "@/lib/utils/dates";
+import { formatDuration, getReferenceToday, toIsoDate } from "@/lib/utils/dates";
 
 type CalendarView = "week" | "day" | "month";
 type CalendarEntry = { id: string; date: string; time: string; endTime?: string; title: string; type: string; kind: "event" | "task" };
 
-const initialDate = new Date(2026, 8, 9);
 const dayFormatter = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 const monthFormatter = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
 const shortDayFormatter = new Intl.DateTimeFormat("fr-FR", { weekday: "short" });
@@ -23,7 +22,7 @@ export function ScheduleManager({ initialEvents, initialTasks = [], canEdit = tr
   const [events, setEvents] = useState(initialEvents);
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<CalendarView>("week");
-  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [selectedDate, setSelectedDate] = useState(getReferenceToday);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -31,7 +30,7 @@ export function ScheduleManager({ initialEvents, initialTasks = [], canEdit = tr
   const monthDays = getMonthDays(selectedDate);
 
   const entries: CalendarEntry[] = [
-    ...events.map((event): CalendarEntry => ({ id: event.id, date: event.date, time: event.time, title: event.title, type: event.type, kind: "event" })),
+    ...events.map((event): CalendarEntry => ({ id: event.id, date: event.date, time: event.time, endTime: event.endTime, title: event.title, type: event.type, kind: "event" })),
     ...initialTasks.filter((task) => task.date).map((task): CalendarEntry => ({ id: task.id, date: task.date, time: task.time, endTime: task.endTime, title: task.title, type: task.category, kind: "task" })),
   ].sort((first, second) => first.time.localeCompare(second.time));
 
@@ -52,7 +51,7 @@ export function ScheduleManager({ initialEvents, initialTasks = [], canEdit = tr
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     startTransition(async () => {
-      const result = await createScheduleEventAction({ title: formData.get("title"), date: formData.get("date"), time: formData.get("time"), type: formData.get("type") });
+      const result = await createScheduleEventAction({ title: formData.get("title"), date: formData.get("date"), time: formData.get("time"), endTime: formData.get("endTime"), type: formData.get("type") });
       if (!result.ok) { setError(result.error); return; }
       setEvents((current) => [...current, result.event]);
       setOpen(false); setError(null); event.currentTarget.reset();
@@ -66,10 +65,12 @@ export function ScheduleManager({ initialEvents, initialTasks = [], canEdit = tr
 
   function entryCard(entry: CalendarEntry) {
     const isTask = entry.kind === "task";
+    const duration = entry.endTime ? formatDuration(entry.time, entry.endTime) : "";
+    const range = entry.endTime ? `${entry.time} - ${entry.endTime}${duration ? ` (${duration})` : ""}` : entry.time;
     return <div className={`event-block ${isTask ? "event-tache" : `event-${entry.type.toLowerCase()}`}`} key={`${entry.kind}-${entry.id}`}>
       {isTask && <CheckSquare size={12} />}
       <b>{entry.title}</b>
-      <small>{isTask ? `Tâche · ${entry.time}${entry.endTime ? ` - ${entry.endTime}` : ""}` : entry.type}</small>
+      <small>{isTask ? `Tâche · ${range}` : `${entry.type} · ${range}`}</small>
       {!isTask && canEdit && <button type="button" className="more-button" onClick={() => removeEvent(entry.id)} aria-label="Supprimer l'événement"><Trash2 size={13} /></button>}
     </div>;
   }
@@ -80,7 +81,7 @@ export function ScheduleManager({ initialEvents, initialTasks = [], canEdit = tr
       <button type="button" className="icon-button calendar-nav-button" onClick={() => movePeriod(-1)} aria-label="Période précédente"><ChevronLeft size={18} /></button>
       <strong>{periodLabel}</strong>
       <button type="button" className="icon-button calendar-nav-button" onClick={() => movePeriod(1)} aria-label="Période suivante"><ChevronRight size={18} /></button>
-      <button type="button" className="today-button" onClick={() => setSelectedDate(new Date(initialDate))}>Aujourd&apos;hui</button>
+      <button type="button" className="today-button" onClick={() => setSelectedDate(getReferenceToday())}>Aujourd&apos;hui</button>
       <div className="view-switch">{([["week", "Semaine"], ["day", "Jour"], ["month", "Mois"]] as const).map(([value, label]) => <button type="button" className={view === value ? "active" : ""} key={value} onClick={() => setView(value)}>{label}</button>)}</div>
     </div>
 
@@ -96,7 +97,8 @@ export function ScheduleManager({ initialEvents, initialTasks = [], canEdit = tr
       <button type="button" className="modal-close" onClick={() => setOpen(false)} aria-label="Fermer"><X size={18} /></button>
       <p className="eyebrow">Planning familial</p><h2>Nouvel événement</h2>
       <label>Titre<input name="title" required placeholder="Ex. Rendez-vous médical" /></label>
-      <div className="form-columns"><label>Date<input name="date" type="date" required defaultValue={toIsoDate(selectedDate)} /></label><label>Heure<input name="time" type="time" required /></label></div>
+      <div className="form-columns"><label>Date<input name="date" type="date" required defaultValue={toIsoDate(selectedDate)} /></label><label>Arrivée<input name="time" type="time" required /></label></div>
+      <label>Fin<input name="endTime" type="time" required /></label>
       <label>Type<select name="type"><option>Présence</option><option>Enfants</option><option>École</option><option>Repas</option><option>Autre</option></select></label>
       {error && <p className="form-error">{error}</p>}
       <button className="primary-button" type="submit" disabled={isPending}>{isPending ? "Enregistrement..." : "Enregistrer l'événement"}</button>

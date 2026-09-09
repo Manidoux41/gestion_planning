@@ -8,7 +8,7 @@ import { translator } from "@/lib/i18n";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const events: ScheduleEvent[] = [{ id: "event-1", date: "2026-09-09", time: "08:00", title: "Arrivée de Boneth", type: "Présence" }, { id: "event-2", date: "2026-09-09", time: "08:30", title: "Préparer les enfants", type: "Enfants" }, { id: "event-3", date: "2026-09-09", time: "15:30", title: "Récupérer Loukas à l'école", type: "École" }, { id: "event-4", date: "2026-09-09", time: "16:00", title: "Goûter et devoirs", type: "Repas" }, { id: "event-5", date: "2026-09-09", time: "18:00", title: "Fin de journée", type: "Présence" }];
+const events: ScheduleEvent[] = [{ id: "event-1", date: "2026-09-09", time: "08:00", endTime: "08:30", title: "Arrivée de Boneth", type: "Présence" }, { id: "event-2", date: "2026-09-09", time: "08:30", endTime: "09:00", title: "Préparer les enfants", type: "Enfants" }, { id: "event-3", date: "2026-09-09", time: "15:30", endTime: "16:00", title: "Récupérer Loukas à l'école", type: "École" }, { id: "event-4", date: "2026-09-09", time: "16:00", endTime: "16:30", title: "Goûter et devoirs", type: "Repas" }, { id: "event-5", date: "2026-09-09", time: "18:00", endTime: "18:30", title: "Fin de journée", type: "Présence" }];
 
 export default async function SchedulePage() {
   const user = await requireUser();

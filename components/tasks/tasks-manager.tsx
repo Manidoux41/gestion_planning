@@ -4,18 +4,7 @@ import { FormEvent, useState, useTransition } from "react";
 import { Check, Clock3, Plus, Tag, Trash2, X } from "lucide-react";
 import type { Child, Task } from "@/lib/db/mock-data";
 import { createTaskAction, deleteTaskAction, toggleTaskDoneAction } from "@/app/actions/tasks";
-import { toIsoDate } from "@/lib/utils/dates";
-
-function formatDuration(start: string, end: string): string {
-  if (!start || !end) return "";
-  const [startHour = 0, startMinute = 0] = start.split(":").map(Number);
-  const [endHour = 0, endMinute = 0] = end.split(":").map(Number);
-  const minutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
-  if (minutes <= 0) return "";
-  const hours = Math.floor(minutes / 60);
-  const remaining = minutes % 60;
-  return hours > 0 ? `${hours}h${remaining ? String(remaining).padStart(2, "0") : ""}` : `${remaining}min`;
-}
+import { formatDuration, getReferenceToday, toIsoDate } from "@/lib/utils/dates";
 
 function formatDate(date: string): string {
   if (!date) return "";
@@ -78,7 +67,7 @@ export function TasksManager({ initialTasks, childOptions, canEdit = true }: { i
       <button type="button" className="modal-close" onClick={() => setOpen(false)} aria-label="Fermer"><X size={18} /></button>
       <p className="eyebrow">Organisation quotidienne</p><h2>Nouvelle tâche</h2>
       <label>Titre<input name="title" required placeholder="Ex. Préparer le goûter" /></label>
-      <div className="form-columns"><label>Date<input name="date" type="date" required defaultValue={toIsoDate(new Date(2026, 8, 9))} /></label><label>Priorité<select name="priority"><option>Normale</option><option>Important</option></select></label></div>
+      <div className="form-columns"><label>Date<input name="date" type="date" required defaultValue={toIsoDate(getReferenceToday())} /></label><label>Priorité<select name="priority"><option>Normale</option><option>Important</option></select></label></div>
       <div className="form-columns"><label>Début<input name="time" type="time" required /></label><label>Fin<input name="endTime" type="time" required /></label></div>
       <label>Enfant<select name="child">{childOptions.map((child) => <option key={child.id}>{child.name.split(" ")[0]}</option>)}</select></label>
       <label>Catégorie<select name="category"><option>Enfants</option><option>École</option><option>Repas</option><option>Maison</option><option>Courses</option></select></label>

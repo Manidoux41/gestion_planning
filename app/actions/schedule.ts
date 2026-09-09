@@ -6,11 +6,17 @@ import { prisma } from "@/lib/db/prisma";
 import { requireFamilyAdmin } from "@/lib/auth/guard";
 import { prismaFamilyRepository } from "@/lib/db/prisma-repository";
 
-const scheduleInput = z.object({ title: z.string().trim().min(2), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."), time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), type: z.enum(["Présence", "Enfants", "École", "Repas", "Autre"]) });
+const scheduleInput = z.object({
+  title: z.string().trim().min(2),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."),
+  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Heure de début invalide."),
+  endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Heure de fin invalide."),
+  type: z.enum(["Présence", "Enfants", "École", "Repas", "Autre"]),
+}).refine((data) => data.endTime > data.time, { message: "L'heure de fin doit être après l'heure de début.", path: ["endTime"] });
 
 export async function createScheduleEventAction(input: unknown) {
   const parsed = scheduleInput.safeParse(input);
-  if (!parsed.success) return { ok: false as const, error: "Les informations de l'événement sont invalides." };
+  if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Les informations de l'événement sont invalides." };
   const admin = await requireFamilyAdmin();
   const event = await prismaFamilyRepository.createScheduleEvent(admin.familyId, parsed.data);
   revalidatePath("/schedule");

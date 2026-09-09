@@ -42,8 +42,8 @@ function toTask(record: { id: string; title: string; dueAt: Date | null; endAt: 
   };
 }
 
-function toEvent(record: { id: string; title: string; type: string; startsAt: Date }): ScheduleEvent {
-  return { id: record.id, date: toIsoDate(record.startsAt), title: record.title, type: record.type as ScheduleEvent["type"], time: record.startsAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) };
+function toEvent(record: { id: string; title: string; type: string; startsAt: Date; endsAt: Date | null }): ScheduleEvent {
+  return { id: record.id, date: toIsoDate(record.startsAt), title: record.title, type: record.type as ScheduleEvent["type"], time: record.startsAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }), endTime: record.endsAt ? record.endsAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "" };
 }
 
 export const prismaFamilyRepository: FamilyRepository = {
@@ -87,7 +87,9 @@ export const prismaFamilyRepository: FamilyRepository = {
     return records.map(toEvent);
   },
   async createScheduleEvent(familyId: string, event: Omit<ScheduleEvent, "id">) {
-    const record = await prisma.schedule.create({ data: { familyId, title: event.title, type: event.type, startsAt: new Date(`${event.date}T${event.time}:00`) } });
+    const startsAt = new Date(`${event.date}T${event.time}:00`);
+    const endsAt = event.endTime ? new Date(`${event.date}T${event.endTime}:00`) : null;
+    const record = await prisma.schedule.create({ data: { familyId, title: event.title, type: event.type, startsAt, endsAt } });
     return toEvent(record);
   },
   async listAbsences(familyId: string): Promise<Absence[]> {
