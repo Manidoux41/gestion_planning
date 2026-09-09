@@ -4,6 +4,9 @@ import { TasksManager } from "@/components/tasks/tasks-manager";
 import { getDemoFamilyContext } from "@/lib/db/demo-context";
 import { prismaFamilyRepository } from "@/lib/db/prisma-repository";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export default async function TasksPage() {
   const { family } = await getDemoFamilyContext();
   const [tasks, children] = await Promise.all([prismaFamilyRepository.listTasks(family.id), prismaFamilyRepository.listChildren(family.id)]);

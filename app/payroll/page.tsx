@@ -6,6 +6,9 @@ import { mockNanny } from "@/lib/db";
 import { getDemoFamilyContext } from "@/lib/db/demo-context";
 import { prismaFamilyRepository } from "@/lib/db/prisma-repository";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const money = (value: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "USD" }).format(value);
 
 export default async function PayrollPage() {

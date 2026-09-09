@@ -3,5 +3,8 @@ import { AppShell } from "@/components/layout/app-shell";
 import { mockFamily } from "@/lib/db";
 import { getDemoFamilyContext } from "@/lib/db/demo-context";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 const settings = [{ title: "Famille", description: "Coordonnées de votre foyer", icon: Home, values: [mockFamily.name, mockFamily.address] }, { title: "Langue et devise", description: "Préférences d'affichage", icon: Globe2, values: ["Français", `${mockFamily.currency} · Dollar américain`] }, { title: "Travail et paie", description: "Règles de calcul par défaut", icon: Wallet, values: ["35h par semaine", "Base mensuelle : 330 $"] }];
 export default async function SettingsPage() { const { family } = await getDemoFamilyContext(); const currentSettings = settings.map((setting) => setting.title === "Famille" ? { ...setting, values: [family.name, family.address ?? ""] } : setting); return <AppShell activePath="/settings"><div className="content-wrap app-page"><div className="page-heading"><div><p className="eyebrow">Votre espace</p><h1>Paramètres</h1><p className="page-subtitle">Adaptez Maison douce à votre organisation.</p></div></div><section className="settings-list">{currentSettings.map((setting) => { const Icon = setting.icon; return <button className="settings-row" key={setting.title}><span className="settings-icon"><Icon size={18} /></span><span><b>{setting.title}</b><small>{setting.description}</small><em>{setting.values.join(" · ")}</em></span><ChevronRight size={18} /></button>; })}</section></div></AppShell>; }

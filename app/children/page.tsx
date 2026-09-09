@@ -4,6 +4,9 @@ import { ChildrenManager } from "@/components/children/children-manager";
 import { getDemoFamilyContext } from "@/lib/db/demo-context";
 import { prismaFamilyRepository } from "@/lib/db/prisma-repository";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export default async function ChildrenPage() {
   const { family } = await getDemoFamilyContext();
   const children = await prismaFamilyRepository.listChildren(family.id);

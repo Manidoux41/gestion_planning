@@ -4,6 +4,9 @@ import { mockNanny } from "@/lib/db";
 import { getDemoFamilyContext } from "@/lib/db/demo-context";
 import { prismaFamilyRepository } from "@/lib/db/prisma-repository";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export default async function NannyPage() {
   const { family } = await getDemoFamilyContext();
   const nanny = await prismaFamilyRepository.getNanny(family.id) ?? mockNanny;
