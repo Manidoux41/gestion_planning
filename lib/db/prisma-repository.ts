@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import type { Absence, Child, Family, Nanny, ScheduleEvent, Task } from "./domain-types";
 import type { FamilyRepository } from "./repository";
+import { toIsoDate } from "@/lib/utils/dates";
 
 const absenceTypeLabels: Record<string, string> = {
   CONGE: "Congé",
@@ -27,12 +28,22 @@ function toChild(record: { id: string; firstName: string; lastName: string | nul
   return { id: record.id, name, age: 0, school: record.school ?? "À préciser", color: "sage", initials: name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() };
 }
 
-function toTask(record: { id: string; title: string; dueAt: Date | null; category: string; priority: "NORMALE" | "IMPORTANT"; status: "TODO" | "IN_PROGRESS" | "DONE"; child: { firstName: string } | null }): Task {
-  return { id: record.id, title: record.title, time: record.dueAt ? record.dueAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "", child: record.child?.firstName ?? "Famille", category: record.category as Task["category"], priority: record.priority === "IMPORTANT" ? "Important" : "Normale", done: record.status === "DONE" };
+function toTask(record: { id: string; title: string; dueAt: Date | null; endAt: Date | null; category: string; priority: "NORMALE" | "IMPORTANT"; status: "TODO" | "IN_PROGRESS" | "DONE"; child: { firstName: string } | null }): Task {
+  return {
+    id: record.id,
+    title: record.title,
+    date: record.dueAt ? toIsoDate(record.dueAt) : "",
+    time: record.dueAt ? record.dueAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "",
+    endTime: record.endAt ? record.endAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "",
+    child: record.child?.firstName ?? "Famille",
+    category: record.category as Task["category"],
+    priority: record.priority === "IMPORTANT" ? "Important" : "Normale",
+    done: record.status === "DONE",
+  };
 }
 
 function toEvent(record: { id: string; title: string; type: string; startsAt: Date }): ScheduleEvent {
-  return { id: record.id, title: record.title, type: record.type as ScheduleEvent["type"], time: record.startsAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) };
+  return { id: record.id, date: toIsoDate(record.startsAt), title: record.title, type: record.type as ScheduleEvent["type"], time: record.startsAt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) };
 }
 
 export const prismaFamilyRepository: FamilyRepository = {
@@ -66,7 +77,9 @@ export const prismaFamilyRepository: FamilyRepository = {
     return records.map(toTask);
   },
   async createTask(familyId: string, task: Omit<Task, "id">) {
-    const record = await prisma.task.create({ data: { familyId, title: task.title, category: task.category, priority: task.priority === "Important" ? "IMPORTANT" : "NORMALE", status: task.done ? "DONE" : "TODO", dueAt: task.time ? new Date(`2026-09-09T${task.time}:00`) : null } , include: { child: { select: { firstName: true } } } });
+    const dueAt = task.date && task.time ? new Date(`${task.date}T${task.time}:00`) : null;
+    const endAt = task.date && task.endTime ? new Date(`${task.date}T${task.endTime}:00`) : null;
+    const record = await prisma.task.create({ data: { familyId, title: task.title, category: task.category, priority: task.priority === "Important" ? "IMPORTANT" : "NORMALE", status: task.done ? "DONE" : "TODO", dueAt, endAt }, include: { child: { select: { firstName: true } } } });
     return toTask(record);
   },
   async listScheduleEvents(familyId: string) {
@@ -74,7 +87,7 @@ export const prismaFamilyRepository: FamilyRepository = {
     return records.map(toEvent);
   },
   async createScheduleEvent(familyId: string, event: Omit<ScheduleEvent, "id">) {
-    const record = await prisma.schedule.create({ data: { familyId, title: event.title, type: event.type, startsAt: new Date(`2026-09-09T${event.time}:00`) } });
+    const record = await prisma.schedule.create({ data: { familyId, title: event.title, type: event.type, startsAt: new Date(`${event.date}T${event.time}:00`) } });
     return toEvent(record);
   },
   async listAbsences(familyId: string): Promise<Absence[]> {

@@ -9,9 +9,9 @@ export type ScheduleEventType = "Présence" | "Enfants" | "École" | "Repas" | "
 export type Child = { id: string; name: string; age: number; school: string; color: ChildColor; initials: string };
 export type Nanny = { id: string; name: string; role: string; phone: string; email: string; monthlySalary: number; weeklyHours: number; startDate: string };
 export type NannyRecord = { id: string; name: string; email: string | null; username: string | null; hourlyRate: number | null; monthlySalary: number | null; weeklyHours: number; hasAccount: boolean };
-export type Task = { id: string; title: string; time: string; child: string; category: TaskCategory; priority: TaskPriority; done: boolean };
+export type Task = { id: string; title: string; date: string; time: string; endTime: string; child: string; category: TaskCategory; priority: TaskPriority; done: boolean };
 export type TimeEntry = { id: string; date: string; day: string; arrival: string; departure: string; duration: string; status: TimeEntryStatus };
 export type Absence = { id: string; date: string; type: string; person: string; duration: string; status: AbsenceStatus };
-export type ScheduleEvent = { id: string; time: string; title: string; type: ScheduleEventType };
+export type ScheduleEvent = { id: string; date: string; time: string; title: string; type: ScheduleEventType };
 
 export type Family = { id: string; name: string; address: string; phone: string; currency: CurrencyCode };

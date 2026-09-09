@@ -206,6 +206,7 @@ model Task {
   title            String
   description      String?
   dueAt            DateTime?
+  endAt            DateTime?
   estimatedMinutes Int?
   category         String
   status           TaskStatus   @default(TODO)

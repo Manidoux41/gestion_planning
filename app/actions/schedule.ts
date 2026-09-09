@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db/prisma";
 import { requireFamilyAdmin } from "@/lib/auth/guard";
 import { prismaFamilyRepository } from "@/lib/db/prisma-repository";
 
-const scheduleInput = z.object({ title: z.string().trim().min(2), time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), type: z.enum(["Présence", "Enfants", "École", "Repas", "Autre"]) });
+const scheduleInput = z.object({ title: z.string().trim().min(2), date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."), time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), type: z.enum(["Présence", "Enfants", "École", "Repas", "Autre"]) });
 
 export async function createScheduleEventAction(input: unknown) {
   const parsed = scheduleInput.safeParse(input);

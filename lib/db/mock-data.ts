@@ -9,10 +9,10 @@ export const mockChildren: Child[] = [
   { id: "illyana", name: "Illyana Martin", age: 4, school: "École des Lilas", color: "peach", initials: "IM" },
 ];
 export const mockTasks: Task[] = [
-  { id: "task-1", title: "Récupérer Loukas à l'école", time: "15:30", child: "Loukas", category: "École", priority: "Important", done: false },
-  { id: "task-2", title: "Préparer le goûter", time: "16:00", child: "Loukas & Illyana", category: "Repas", priority: "Normale", done: true },
-  { id: "task-3", title: "Vérifier les devoirs", time: "17:00", child: "Illyana", category: "Enfants", priority: "Normale", done: false },
-  { id: "task-4", title: "Préparer les vêtements de demain", time: "18:00", child: "Loukas & Illyana", category: "Maison", priority: "Normale", done: false },
+  { id: "task-1", title: "Récupérer Loukas à l'école", date: "2026-09-09", time: "15:30", endTime: "16:00", child: "Loukas", category: "École", priority: "Important", done: false },
+  { id: "task-2", title: "Préparer le goûter", date: "2026-09-09", time: "16:00", endTime: "16:30", child: "Loukas & Illyana", category: "Repas", priority: "Normale", done: true },
+  { id: "task-3", title: "Vérifier les devoirs", date: "2026-09-09", time: "17:00", endTime: "17:30", child: "Illyana", category: "Enfants", priority: "Normale", done: false },
+  { id: "task-4", title: "Préparer les vêtements de demain", date: "2026-09-09", time: "18:00", endTime: "18:15", child: "Loukas & Illyana", category: "Maison", priority: "Normale", done: false },
 ];
 export const mockTimeEntries: TimeEntry[] = [
   { id: "time-1", date: "09 sept.", day: "Mardi", arrival: "08:04", departure: "En cours", duration: "6h 42", status: "En cours" },
