@@ -6,7 +6,7 @@ import { updateTimeEntryAction, type TimesheetActionState } from "@/app/actions/
 
 const initialState: TimesheetActionState = { ok: false };
 
-export function EditTimeEntryForm({ entryId, nannyName, date, arrival, departure }: { entryId: string; nannyName: string; date: string; arrival: string; departure: string }) {
+export function EditTimeEntryForm({ entryId, nannyName, period, date, arrival, departure }: { entryId: string; nannyName: string; period: "MORNING" | "AFTERNOON"; date: string; arrival: string; departure: string }) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(updateTimeEntryAction, initialState);
 
@@ -16,6 +16,7 @@ export function EditTimeEntryForm({ entryId, nannyName, date, arrival, departure
       <button type="button" className="modal-close" onClick={() => setOpen(false)} aria-label="Fermer"><X size={18} /></button>
       <p className="eyebrow">{nannyName}</p><h2>Modifier le pointage</h2>
       <input type="hidden" name="entryId" value={entryId} />
+      <label>Période<select name="period" defaultValue={period} required><option value="MORNING">Matin</option><option value="AFTERNOON">Après-midi</option></select></label>
       <label>Date<input type="date" name="date" defaultValue={date} required /></label>
       <div className="form-columns"><label>Arrivée<input type="time" name="arrival" defaultValue={arrival} required /></label><label>Départ<input type="time" name="departure" defaultValue={departure} required /></label></div>
       {state.error && <p className="form-error">{state.error}</p>}

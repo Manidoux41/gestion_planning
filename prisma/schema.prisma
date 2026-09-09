@@ -50,6 +50,11 @@ enum TimeEntryStatus {
   VALIDATED
 }
 
+enum TimeEntryPeriod {
+  MORNING
+  AFTERNOON
+}
+
 enum Locale {
   FR
   EN
@@ -179,6 +184,7 @@ model TimeEntry {
   familyId    String
   nannyId     String
   workDate    DateTime
+  period      TimeEntryPeriod @default(MORNING)
   arrivalAt   DateTime?
   departureAt DateTime?
   status      TimeEntryStatus @default(PENDING)
@@ -189,7 +195,7 @@ model TimeEntry {
   nanny       Nanny           @relation(fields: [nannyId], references: [id], onDelete: Cascade)
   breaks      Break[]
 
-  @@unique([nannyId, workDate])
+  @@unique([nannyId, workDate, period])
   @@index([familyId, workDate])
 }
 

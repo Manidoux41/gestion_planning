@@ -8,8 +8,18 @@ import { getDayRange, getReferenceToday } from "@/lib/utils/dates";
 
 export type TimesheetActionState = { ok: boolean; error?: string };
 
+type TimeEntryPeriod = "MORNING" | "AFTERNOON";
+
 function today() {
   return getDayRange(getReferenceToday()).start;
+}
+
+async function getTodayEntries(nannyId: string, workDate: Date) {
+  const entries = await prisma.timeEntry.findMany({ where: { nannyId, workDate } });
+  return {
+    morning: entries.find((entry) => entry.period === "MORNING"),
+    afternoon: entries.find((entry) => entry.period === "AFTERNOON"),
+  };
 }
 
 export async function clockInAction(): Promise<TimesheetActionState> {
@@ -17,13 +27,27 @@ export async function clockInAction(): Promise<TimesheetActionState> {
   if (!user.nannyId) return { ok: false, error: "Seule une employée peut pointer son arrivée." };
 
   const workDate = today();
-  const existing = await prisma.timeEntry.findUnique({ where: { nannyId_workDate: { nannyId: user.nannyId, workDate } } });
-  if (existing?.arrivalAt) return { ok: false, error: "L'arrivée a déjà été pointée aujourd'hui." };
+  const { morning, afternoon } = await getTodayEntries(user.nannyId, workDate);
+  const now = new Date();
 
-  if (existing) {
-    await prisma.timeEntry.update({ where: { id: existing.id }, data: { arrivalAt: new Date(), status: "PENDING" } });
+  if (!morning?.arrivalAt) {
+    if (morning) {
+      await prisma.timeEntry.update({ where: { id: morning.id }, data: { arrivalAt: now, status: "PENDING" } });
+    } else {
+      await prisma.timeEntry.create({ data: { familyId: user.familyId, nannyId: user.nannyId, workDate, period: "MORNING", arrivalAt: now } });
+    }
+  } else if (!morning.departureAt) {
+    return { ok: false, error: "Pointez d'abord le départ du matin." };
+  } else if (!afternoon?.arrivalAt) {
+    if (afternoon) {
+      await prisma.timeEntry.update({ where: { id: afternoon.id }, data: { arrivalAt: now, status: "PENDING" } });
+    } else {
+      await prisma.timeEntry.create({ data: { familyId: user.familyId, nannyId: user.nannyId, workDate, period: "AFTERNOON", arrivalAt: now } });
+    }
+  } else if (!afternoon.departureAt) {
+    return { ok: false, error: "Pointez d'abord le départ de l'après-midi." };
   } else {
-    await prisma.timeEntry.create({ data: { familyId: user.familyId, nannyId: user.nannyId, workDate, arrivalAt: new Date() } });
+    return { ok: false, error: "Les pointages du matin et de l'après-midi sont déjà terminés." };
   }
 
   revalidatePath("/timesheet");
@@ -36,11 +60,21 @@ export async function clockOutAction(): Promise<TimesheetActionState> {
   if (!user.nannyId) return { ok: false, error: "Seule une employée peut pointer son départ." };
 
   const workDate = today();
-  const existing = await prisma.timeEntry.findUnique({ where: { nannyId_workDate: { nannyId: user.nannyId, workDate } } });
-  if (!existing?.arrivalAt) return { ok: false, error: "Aucune arrivée pointée aujourd'hui." };
-  if (existing.departureAt) return { ok: false, error: "Le départ a déjà été pointé aujourd'hui." };
+  const { morning, afternoon } = await getTodayEntries(user.nannyId, workDate);
+  const now = new Date();
 
-  await prisma.timeEntry.update({ where: { id: existing.id }, data: { departureAt: new Date() } });
+  if (morning?.arrivalAt && !morning.departureAt) {
+    await prisma.timeEntry.update({ where: { id: morning.id }, data: { departureAt: now } });
+  } else if (afternoon?.arrivalAt && !afternoon.departureAt) {
+    await prisma.timeEntry.update({ where: { id: afternoon.id }, data: { departureAt: now } });
+  } else if (!morning?.arrivalAt) {
+    return { ok: false, error: "Aucune arrivée du matin pointée aujourd'hui." };
+  } else if (!afternoon?.arrivalAt) {
+    return { ok: false, error: "Pointez d'abord l'arrivée de l'après-midi." };
+  } else {
+    return { ok: false, error: "Les deux départs ont déjà été pointés aujourd'hui." };
+  }
+
   revalidatePath("/timesheet");
   revalidatePath("/");
   return { ok: true };
@@ -74,6 +108,7 @@ export async function deleteTimeEntryAction(entryId: string) {
 
 const manualEntrySchema = z.object({
   nannyId: z.string().min(1, "Employée requise."),
+  period: z.enum(["MORNING", "AFTERNOON"]),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."),
   arrival: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Heure d'arrivée invalide."),
   departure: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Heure de départ invalide."),
@@ -91,10 +126,11 @@ export async function createManualTimeEntryAction(_prevState: TimesheetActionSta
   const workDate = new Date(`${parsed.data.date}T00:00:00`);
   const arrivalAt = new Date(`${parsed.data.date}T${parsed.data.arrival}:00`);
   const departureAt = new Date(`${parsed.data.date}T${parsed.data.departure}:00`);
+  const period = parsed.data.period as TimeEntryPeriod;
 
   await prisma.timeEntry.upsert({
-    where: { nannyId_workDate: { nannyId: nanny.id, workDate } },
-    create: { familyId: admin.familyId, nannyId: nanny.id, workDate, arrivalAt, departureAt, status: "VALIDATED" },
+    where: { nannyId_workDate_period: { nannyId: nanny.id, workDate, period } },
+    create: { familyId: admin.familyId, nannyId: nanny.id, workDate, period, arrivalAt, departureAt, status: "VALIDATED" },
     update: { arrivalAt, departureAt, status: "VALIDATED" },
   });
 
@@ -106,6 +142,7 @@ export async function createManualTimeEntryAction(_prevState: TimesheetActionSta
 
 const updateEntrySchema = z.object({
   entryId: z.string().min(1),
+  period: z.enum(["MORNING", "AFTERNOON"]),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."),
   arrival: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Heure d'arrivée invalide."),
   departure: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Heure de départ invalide."),
@@ -123,13 +160,14 @@ export async function updateTimeEntryAction(_prevState: TimesheetActionState, fo
   const workDate = new Date(`${parsed.data.date}T00:00:00`);
   const arrivalAt = new Date(`${parsed.data.date}T${parsed.data.arrival}:00`);
   const departureAt = new Date(`${parsed.data.date}T${parsed.data.departure}:00`);
+  const period = parsed.data.period as TimeEntryPeriod;
 
-  if (workDate.getTime() !== entry.workDate.getTime()) {
-    const conflict = await prisma.timeEntry.findUnique({ where: { nannyId_workDate: { nannyId: entry.nannyId, workDate } } });
+  if (workDate.getTime() !== entry.workDate.getTime() || period !== entry.period) {
+    const conflict = await prisma.timeEntry.findUnique({ where: { nannyId_workDate_period: { nannyId: entry.nannyId, workDate, period } } });
     if (conflict && conflict.id !== entry.id) return { ok: false, error: "Un pointage existe déjà pour cette employée à cette date." };
   }
 
-  await prisma.timeEntry.update({ where: { id: entry.id }, data: { workDate, arrivalAt, departureAt, status: "VALIDATED" } });
+  await prisma.timeEntry.update({ where: { id: entry.id }, data: { workDate, period, arrivalAt, departureAt, status: "VALIDATED" } });
 
   revalidatePath("/timesheet");
   revalidatePath("/payroll");

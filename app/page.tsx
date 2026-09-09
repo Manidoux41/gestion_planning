@@ -20,6 +20,10 @@ function StatCard({ label, value, detail, tone }: { label: string; value: string
   return <article className={`stat-card stat-card-${tone}`}><div className="stat-card-heading"><span>{label}</span></div><strong>{value}</strong><p>{detail}</p></article>;
 }
 
+function periodLabel(period: "MORNING" | "AFTERNOON") {
+  return period === "MORNING" ? "Matin" : "Après-midi";
+}
+
 export default async function Home() {
   const user = await requireUser();
   const t = translator(user.language);
@@ -91,6 +95,7 @@ export default async function Home() {
       <div className="card-heading"><div><p className="eyebrow">Pointages</p><h2>Pointages à valider</h2></div><Link href="/timesheet">{t("common.viewAll")}</Link></div>
       <div className="time-table">{pendingTimeEntries.map((entry) => <div className="time-row" key={entry.id}>
         <div><b>{entry.nanny.firstName} {entry.nanny.lastName}</b><small>{entry.workDate.toLocaleDateString(tag, { day: "2-digit", month: "short" })}</small></div>
+        <span>{periodLabel(entry.period)}</span>
         <span>{entry.arrivalAt ? timeFormatter.format(entry.arrivalAt) : "—"}</span>
         <span>{entry.departureAt ? timeFormatter.format(entry.departureAt) : "—"}</span>
         <strong />

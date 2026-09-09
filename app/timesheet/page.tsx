@@ -18,6 +18,14 @@ export const runtime = "nodejs";
 const dayFormatter = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "2-digit", month: "short" });
 const timeFormatter = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
+function periodLabel(period: "MORNING" | "AFTERNOON") {
+  return period === "MORNING" ? "Matin" : "Après-midi";
+}
+
+function timeInputValue(date: Date | null) {
+  return date ? `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}` : "";
+}
+
 function formatHours(hours: number) {
   const wholeHours = Math.floor(hours);
   const minutes = Math.round((hours - wholeHours) * 60);
@@ -41,7 +49,7 @@ export default async function TimesheetPage() {
 
   const [monthEntries, todaysOwnEntry] = await Promise.all([
     nannyIds.length ? prisma.timeEntry.findMany({ where: { familyId: user.familyId, nannyId: { in: nannyIds }, workDate: { gte: monthStart, lt: monthEnd } }, include: { breaks: true }, orderBy: { workDate: "desc" } }) : Promise.resolve([]),
-    user.nannyId ? prisma.timeEntry.findUnique({ where: { nannyId_workDate: { nannyId: user.nannyId, workDate: todayStart } } }) : Promise.resolve(null),
+    user.nannyId ? prisma.timeEntry.findMany({ where: { nannyId: user.nannyId, workDate: todayStart } }) : Promise.resolve([]),
   ]);
 
   const validatedEntries = monthEntries.filter((entry) => entry.status === "VALIDATED");
@@ -50,18 +58,21 @@ export default async function TimesheetPage() {
   const contractStart = nannies[0]?.startDate && nannies[0].startDate > monthStart ? nannies[0].startDate : monthStart;
   const plannedHours = nannies[0] ? computeProratedPlannedHours(nannies[0].weeklyHours, contractStart, monthEnd) : 0;
 
-  const clockState = !todaysOwnEntry || !todaysOwnEntry.arrivalAt ? "not-started" : !todaysOwnEntry.departureAt ? "clocked-in" : "clocked-out";
-  const arrivalLabel = todaysOwnEntry?.arrivalAt ? timeFormatter.format(todaysOwnEntry.arrivalAt) : "";
+  const morningEntry = todaysOwnEntry.find((entry) => entry.period === "MORNING");
+  const afternoonEntry = todaysOwnEntry.find((entry) => entry.period === "AFTERNOON");
+  const clockState = !morningEntry?.arrivalAt ? "not-started" : !morningEntry.departureAt ? "morning-in" : !afternoonEntry?.arrivalAt ? "morning-done" : !afternoonEntry.departureAt ? "afternoon-in" : "day-done";
+  const arrivalLabel = morningEntry?.arrivalAt ? timeFormatter.format(morningEntry.arrivalAt) : "";
 
   const nannyNamesById = new Map(nannies.map((nanny) => [nanny.id, `${nanny.firstName} ${nanny.lastName}`]));
 
-  const rows: (TimeEntryRow & { canValidate: boolean; canManage: boolean; nannyName: string; isoDate: string; arrival24: string; departure24: string })[] = monthEntries.map((entry) => {
+  const rows: (TimeEntryRow & { canValidate: boolean; canManage: boolean; nannyName: string; isoDate: string; periodValue: "MORNING" | "AFTERNOON"; arrival24: string; departure24: string })[] = monthEntries.map((entry) => {
     const status: TimeEntryStatus = !entry.departureAt ? "En cours" : entry.status === "VALIDATED" ? "Validée" : "En attente";
     const duration = entry.arrivalAt && entry.departureAt ? formatHours(computeWorkedHours([entry], entry.arrivalAt, entry.departureAt)) : "—";
     return {
       id: entry.id,
       date: entry.workDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }),
       day: dayFormatter.format(entry.workDate).split(" ")[0] ?? "",
+      period: periodLabel(entry.period),
       arrival: entry.arrivalAt ? timeFormatter.format(entry.arrivalAt) : "—",
       departure: entry.departureAt ? timeFormatter.format(entry.departureAt) : "—",
       duration,
@@ -70,19 +81,20 @@ export default async function TimesheetPage() {
       canManage: isAdmin && (status === "Validée" || status === "En attente"),
       nannyName: nannyNamesById.get(entry.nannyId) ?? "",
       isoDate: toIsoDate(entry.workDate),
-      arrival24: entry.arrivalAt ? `${String(entry.arrivalAt.getHours()).padStart(2, "0")}:${String(entry.arrivalAt.getMinutes()).padStart(2, "0")}` : "",
-      departure24: entry.departureAt ? `${String(entry.departureAt.getHours()).padStart(2, "0")}:${String(entry.departureAt.getMinutes()).padStart(2, "0")}` : "",
+      periodValue: entry.period,
+      arrival24: timeInputValue(entry.arrivalAt),
+      departure24: timeInputValue(entry.departureAt),
     };
   });
 
   return <AppShell activePath="/timesheet" user={user}><div className="content-wrap app-page"><div className="page-heading"><div><p className="eyebrow">Suivi du temps</p><h1>{t("timesheet.title")}</h1><p className="page-subtitle">{t("timesheet.subtitle")}</p></div><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{isAdmin && <ManualTimeEntryForm nannies={nannies.map((nanny) => ({ id: nanny.id, name: `${nanny.firstName} ${nanny.lastName}` }))} />}<ExportTimesheetButton entries={rows} /></div></div>
 
-    {!isAdmin && <section className="clock-panel"><div><p className="eyebrow">Aujourd&apos;hui · {dayFormatter.format(today)}</p><h2>{clockState === "clocked-in" ? "La journée est en cours" : clockState === "clocked-out" ? "Journée terminée" : "Prête à commencer ?"}</h2>{clockState !== "not-started" && <p>Arrivée pointée à {arrivalLabel}.</p>}</div><ClockButtons state={clockState} arrivalLabel={arrivalLabel} /></section>}
+    {!isAdmin && <section className="clock-panel"><div><p className="eyebrow">Aujourd&apos;hui · {dayFormatter.format(today)}</p><h2>{clockState === "morning-in" ? "Matinée en cours" : clockState === "morning-done" ? "Pause du midi" : clockState === "afternoon-in" ? "Après-midi en cours" : clockState === "day-done" ? "Journée terminée" : "Prête à commencer ?"}</h2>{clockState !== "not-started" && <p>Arrivée du matin pointée à {arrivalLabel}.</p>}</div><ClockButtons state={clockState} arrivalLabel={arrivalLabel} /></section>}
 
     <div className="quick-stats"><div><Clock3 size={18} /><span>Cette semaine</span><strong>{formatHours(weekHours)}</strong></div><div><Check size={18} /><span>Ce mois</span><strong>{formatHours(monthHours)}</strong></div><div><LogIn size={18} /><span>Heures prévues</span><strong>{formatHours(plannedHours)}</strong></div></div>
 
     {nannies[0] && <section className="table-card"><div className="card-heading"><div><p className="eyebrow">{isAdmin ? `${nannies[0].firstName} ${nannies[0].lastName}` : "Mon quota"}</p><h2>Quota d&apos;heures du mois</h2></div><strong>{Math.min(100, Math.round((monthHours / plannedHours) * 100 || 0))}%</strong></div><div className="quota-bar"><div className="quota-bar-fill" style={{ width: `${Math.min(100, (monthHours / plannedHours) * 100 || 0)}%` }} /></div><p className="page-subtitle">{formatHours(monthHours)} validées sur {formatHours(plannedHours)} prévues · estimation utile pour anticiper la prochaine paie.</p></section>}
 
-    <section className="table-card"><div className="card-heading"><div><p className="eyebrow">Ce mois-ci</p><h2>Historique des pointages</h2></div></div><div className="time-table">{rows.length === 0 && <p className="page-subtitle">Aucun pointage ce mois-ci.</p>}{rows.map((entry) => <div className="time-row" key={entry.id}><div><b>{entry.day}</b><small>{entry.date}</small></div><span>{entry.arrival}</span><span>{entry.departure}</span><strong>{entry.duration}</strong><em className={entry.status === "En cours" ? "current" : ""}>{entry.status}</em>{isAdmin && <div className="time-row-actions">{entry.canValidate && <form action={validateTimeEntryAction.bind(null, entry.id)}><button type="submit" className="more-button" aria-label="Valider ce pointage"><Check size={15} color="#4e7b68" /></button></form>}{entry.status === "Validée" && <form action={unvalidateTimeEntryAction.bind(null, entry.id)}><button type="submit" className="more-button" aria-label="Annuler la validation"><Undo2 size={15} color="#a9745e" /></button></form>}{entry.canManage && <EditTimeEntryForm entryId={entry.id} nannyName={entry.nannyName} date={entry.isoDate} arrival={entry.arrival24} departure={entry.departure24} />}<form action={deleteTimeEntryAction.bind(null, entry.id)}><button type="submit" className="more-button" aria-label="Supprimer ce pointage"><Trash2 size={15} color="#b36551" /></button></form></div>}</div>)}</div></section>
+    <section className="table-card"><div className="card-heading"><div><p className="eyebrow">Ce mois-ci</p><h2>Historique des pointages</h2></div></div><div className="time-table">{rows.length === 0 && <p className="page-subtitle">Aucun pointage ce mois-ci.</p>}{rows.map((entry) => <div className="time-row" key={entry.id}><div><b>{entry.day}</b><small>{entry.date}</small></div><span>{entry.period}</span><span>{entry.arrival}</span><span>{entry.departure}</span><strong>{entry.duration}</strong><em className={entry.status === "En cours" ? "current" : ""}>{entry.status}</em>{isAdmin && <div className="time-row-actions">{entry.canValidate && <form action={validateTimeEntryAction.bind(null, entry.id)}><button type="submit" className="more-button" aria-label="Valider ce pointage"><Check size={15} color="#4e7b68" /></button></form>}{entry.status === "Validée" && <form action={unvalidateTimeEntryAction.bind(null, entry.id)}><button type="submit" className="more-button" aria-label="Annuler la validation"><Undo2 size={15} color="#a9745e" /></button></form>}{entry.canManage && <EditTimeEntryForm entryId={entry.id} nannyName={entry.nannyName} period={entry.periodValue} date={entry.isoDate} arrival={entry.arrival24} departure={entry.departure24} />}<form action={deleteTimeEntryAction.bind(null, entry.id)}><button type="submit" className="more-button" aria-label="Supprimer ce pointage"><Trash2 size={15} color="#b36551" /></button></form></div>}</div>)}</div></section>
   </div></AppShell>;
 }

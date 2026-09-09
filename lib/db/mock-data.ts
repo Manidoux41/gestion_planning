@@ -15,10 +15,10 @@ export const mockTasks: Task[] = [
   { id: "task-4", title: "Préparer les vêtements de demain", date: "2026-09-09", time: "18:00", endTime: "18:15", child: "Loukas & Illyana", category: "Maison", priority: "Normale", done: false },
 ];
 export const mockTimeEntries: TimeEntry[] = [
-  { id: "time-1", date: "09 sept.", day: "Mardi", arrival: "08:04", departure: "En cours", duration: "6h 42", status: "En cours" },
-  { id: "time-2", date: "08 sept.", day: "Lundi", arrival: "08:00", departure: "18:02", duration: "9h 32", status: "Validée" },
-  { id: "time-3", date: "07 sept.", day: "Vendredi", arrival: "08:03", departure: "17:58", duration: "9h 25", status: "Validée" },
-  { id: "time-4", date: "04 sept.", day: "Jeudi", arrival: "08:00", departure: "18:00", duration: "9h 30", status: "Validée" },
+  { id: "time-1", date: "09 sept.", day: "Mardi", period: "Matin", arrival: "08:04", departure: "En cours", duration: "3h 56", status: "En cours" },
+  { id: "time-2", date: "08 sept.", day: "Lundi", period: "Matin", arrival: "08:00", departure: "12:00", duration: "4h 00", status: "Validée" },
+  { id: "time-3", date: "08 sept.", day: "Lundi", period: "Après-midi", arrival: "13:30", departure: "18:02", duration: "4h 32", status: "Validée" },
+  { id: "time-4", date: "07 sept.", day: "Vendredi", period: "Matin", arrival: "08:03", departure: "12:00", duration: "3h 57", status: "Validée" },
 ];
 export const mockAbsences: Absence[] = [
   { id: "absence-1", date: "12 sept. 2026", type: "Absence de l'enfant", person: "Loukas", duration: "1 jour", status: "Planifiée" },

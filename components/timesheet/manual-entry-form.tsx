@@ -19,6 +19,7 @@ export function ManualTimeEntryForm({ nannies }: { nannies: { id: string; name: 
       <p className="eyebrow">Pointage manuel</p><h2>Ajouter ou corriger un pointage</h2>
       <p className="page-subtitle">Pour une heure non encore notée ou notée en retard sur le planning. Ce pointage est validé immédiatement.</p>
       <label>Employée<select name="nannyId" required>{nannies.map((nanny) => <option value={nanny.id} key={nanny.id}>{nanny.name}</option>)}</select></label>
+      <label>Période<select name="period" required><option value="MORNING">Matin</option><option value="AFTERNOON">Après-midi</option></select></label>
       <label>Date<input type="date" name="date" required /></label>
       <div className="form-columns"><label>Arrivée<input type="time" name="arrival" required /></label><label>Départ<input type="time" name="departure" required /></label></div>
       {state.ok && <p className="page-subtitle">Pointage enregistré et validé.</p>}
