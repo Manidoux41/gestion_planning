@@ -1,6 +1,26 @@
 import { prisma } from "./prisma";
-import type { Child, Family, Nanny, ScheduleEvent, Task } from "./domain-types";
+import type { Absence, Child, Family, Nanny, ScheduleEvent, Task } from "./domain-types";
 import type { FamilyRepository } from "./repository";
+
+const absenceTypeLabels: Record<string, string> = {
+  CONGE: "Congé",
+  MALADIE: "Maladie",
+  EXCEPTIONNELLE: "Absence exceptionnelle",
+  JOUR_FERIE: "Jour férié",
+  ABSENCE_ENFANT: "Absence de l'enfant",
+  ABSENCE_NOUNOU: "Absence de la nounou",
+};
+
+const absenceStatusLabels: Record<string, Absence["status"]> = {
+  PENDING: "Planifiée",
+  APPROVED: "Confirmée",
+  REJECTED: "Annulée",
+};
+
+function toNanny(record: { id: string; firstName: string; lastName: string; phone: string | null; email: string | null; monthlySalary: number | null; weeklyHours: number; startDate: Date | null }): Nanny {
+  return { id: record.id, name: `${record.firstName} ${record.lastName}`, role: "Nounou principale", phone: record.phone ?? "", email: record.email ?? "", monthlySalary: record.monthlySalary ?? 0, weeklyHours: record.weeklyHours, startDate: record.startDate?.toLocaleDateString("fr-FR") ?? "" };
+}
+
 
 function toChild(record: { id: string; firstName: string; lastName: string | null; school: string | null }): Child {
   const name = [record.firstName, record.lastName].filter(Boolean).join(" ");
@@ -22,7 +42,15 @@ export const prismaFamilyRepository: FamilyRepository = {
   },
   async getNanny(familyId: string): Promise<Nanny | null> {
     const record = await prisma.nanny.findFirst({ where: { familyId }, orderBy: { createdAt: "asc" } });
-    return record ? { id: record.id, name: `${record.firstName} ${record.lastName}`, role: "Nounou principale", phone: record.phone ?? "", email: record.email ?? "", monthlySalary: record.monthlySalary ?? 0, weeklyHours: record.weeklyHours, startDate: record.startDate?.toLocaleDateString("fr-FR") ?? "" } : null;
+    return record ? toNanny(record) : null;
+  },
+  async getNannyByUserId(userId: string): Promise<Nanny | null> {
+    const record = await prisma.nanny.findUnique({ where: { userId } });
+    return record ? toNanny(record) : null;
+  },
+  async listNannies(familyId: string) {
+    const records = await prisma.nanny.findMany({ where: { familyId }, include: { user: { select: { username: true } } }, orderBy: { createdAt: "asc" } });
+    return records.map((record) => ({ id: record.id, name: `${record.firstName} ${record.lastName}`, email: record.email, username: record.user?.username ?? null, hourlyRate: record.hourlyRate, monthlySalary: record.monthlySalary, weeklyHours: record.weeklyHours, hasAccount: record.userId !== null }));
   },
   async listChildren(familyId: string) {
     const records = await prisma.child.findMany({ where: { familyId }, orderBy: { firstName: "asc" } });
@@ -49,4 +77,16 @@ export const prismaFamilyRepository: FamilyRepository = {
     const record = await prisma.schedule.create({ data: { familyId, title: event.title, type: event.type, startsAt: new Date(`2026-09-09T${event.time}:00`) } });
     return toEvent(record);
   },
+  async listAbsences(familyId: string): Promise<Absence[]> {
+    const records = await prisma.absence.findMany({ where: { familyId }, include: { nanny: { select: { firstName: true, lastName: true } } }, orderBy: { startsOn: "desc" } });
+    return records.map((record) => ({
+      id: record.id,
+      date: record.startsOn.toLocaleDateString("fr-FR") === record.endsOn.toLocaleDateString("fr-FR") ? record.startsOn.toLocaleDateString("fr-FR") : `${record.startsOn.toLocaleDateString("fr-FR")} - ${record.endsOn.toLocaleDateString("fr-FR")}`,
+      type: absenceTypeLabels[record.type] ?? record.type,
+      person: record.nanny ? `${record.nanny.firstName} ${record.nanny.lastName}` : "Famille",
+      duration: `${Math.max(1, Math.round((record.endsOn.getTime() - record.startsOn.getTime()) / 86_400_000))} jour(s)`,
+      status: absenceStatusLabels[record.status] ?? "Planifiée",
+    }));
+  },
 };
+

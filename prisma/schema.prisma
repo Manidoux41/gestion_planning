@@ -10,6 +10,7 @@ datasource db {
 enum UserRole {
   OWNER
   ADMIN
+  NANNY
 }
 
 enum TaskPriority {
@@ -38,14 +39,41 @@ enum PaymentStatus {
   PAID
 }
 
+enum AbsenceRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Locale {
+  FR
+  EN
+  KM
+}
+
 model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  username     String?   @unique
+  name         String
+  passwordHash String    @default("")
+  role         UserRole  @default(OWNER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  families     Family[]
+  nanny        Nanny?
+  sessions     Session[]
+}
+
+model Session {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  role      UserRole @default(OWNER)
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  families  Family[]
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Family {
@@ -56,6 +84,7 @@ model Family {
   phone         String?
   email         String?
   currency      String          @default("USD")
+  language      Locale          @default(FR)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   owner         User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
@@ -75,6 +104,7 @@ model Family {
 model Nanny {
   id            String        @id @default(cuid())
   familyId      String
+  userId        String?       @unique
   firstName     String
   lastName      String
   phone         String?
@@ -90,6 +120,7 @@ model Nanny {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   family        Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   schedules     Schedule[]
   timeEntries   TimeEntry[]
   breaks        Break[]
@@ -203,18 +234,19 @@ model TaskTemplate {
 }
 
 model Absence {
-  id        String      @id @default(cuid())
+  id        String               @id @default(cuid())
   familyId  String
   nannyId   String?
   childId   String?
   type      AbsenceType
+  status    AbsenceRequestStatus @default(PENDING)
   startsOn  DateTime
   endsOn    DateTime
   comment   String?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  family    Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  nanny     Nanny?      @relation(fields: [nannyId], references: [id], onDelete: SetNull)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+  family    Family               @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  nanny     Nanny?               @relation(fields: [nannyId], references: [id], onDelete: SetNull)
 
   @@index([familyId, startsOn, endsOn])
 }

@@ -1,10 +1,21 @@
 import { ChevronRight, Globe2, Home, Wallet } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
+import { LanguageSwitcher } from "@/components/settings/language-switcher";
 import { mockFamily } from "@/lib/db";
-import { getDemoFamilyContext } from "@/lib/db/demo-context";
+import { requireFamilyAdmin } from "@/lib/auth/guard";
+import { translator } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const settings = [{ title: "Famille", description: "Coordonnées de votre foyer", icon: Home, values: [mockFamily.name, mockFamily.address] }, { title: "Langue et devise", description: "Préférences d'affichage", icon: Globe2, values: ["Français", `${mockFamily.currency} · Dollar américain`] }, { title: "Travail et paie", description: "Règles de calcul par défaut", icon: Wallet, values: ["35h par semaine", "Base mensuelle : 330 $"] }];
-export default async function SettingsPage() { const { family } = await getDemoFamilyContext(); const currentSettings = settings.map((setting) => setting.title === "Famille" ? { ...setting, values: [family.name, family.address ?? ""] } : setting); return <AppShell activePath="/settings"><div className="content-wrap app-page"><div className="page-heading"><div><p className="eyebrow">Votre espace</p><h1>Paramètres</h1><p className="page-subtitle">Adaptez Maison douce à votre organisation.</p></div></div><section className="settings-list">{currentSettings.map((setting) => { const Icon = setting.icon; return <button className="settings-row" key={setting.title}><span className="settings-icon"><Icon size={18} /></span><span><b>{setting.title}</b><small>{setting.description}</small><em>{setting.values.join(" · ")}</em></span><ChevronRight size={18} /></button>; })}</section></div></AppShell>; }
+export default async function SettingsPage() {
+  const user = await requireFamilyAdmin();
+  const t = translator(user.language);
+  const settings = [
+    { key: "family", title: t("settings.family"), description: t("settings.familyDesc"), icon: Home, values: [user.familyName, mockFamily.address] },
+    { key: "language", title: t("settings.languageCurrency"), description: t("settings.languageCurrencyDesc"), icon: Globe2, values: [`${mockFamily.currency} · Dollar américain`] },
+    { key: "work", title: t("settings.workPay"), description: t("settings.workPayDesc"), icon: Wallet, values: ["35h par semaine", "Base mensuelle : 330 $"] },
+  ];
+  return <AppShell activePath="/settings" user={user}><div className="content-wrap app-page"><div className="page-heading"><div><p className="eyebrow">Votre espace</p><h1>{t("settings.title")}</h1><p className="page-subtitle">{t("settings.subtitle")}</p></div></div><section className="settings-list">{settings.map((setting) => { const Icon = setting.icon; return <div className="settings-row" key={setting.key}><span className="settings-icon"><Icon size={18} /></span><span><b>{setting.title}</b><small>{setting.description}</small><em>{setting.values.join(" · ")}</em>{setting.key === "language" && <div style={{ marginTop: 10 }}><LanguageSwitcher language={user.language} labels={{ french: t("settings.french"), english: t("settings.english"), khmer: t("settings.khmer") }} /><p className="page-subtitle">{t("settings.languageHint")}</p></div>}</span>{setting.key !== "language" && <ChevronRight size={18} />}</div>; })}</section></div></AppShell>;
+}
+
