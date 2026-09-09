@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Clock3, Plus } from "lucide-react";
+import { Check, ChevronRight, Clock3, Plus, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { AbsenceRequestForm } from "@/components/dashboard/absence-request-form";
 import { DashboardTaskList, type DashboardTask } from "@/components/dashboard/dashboard-task-list";
@@ -11,6 +11,7 @@ import { prismaFamilyRepository } from "@/lib/db/prisma-repository";
 import { getCurrentMonthPayroll } from "@/lib/payroll";
 import { getDayRange, getReferenceToday, toIsoDate } from "@/lib/utils/dates";
 import { intlTag, translator } from "@/lib/i18n";
+import { deleteTimeEntryAction, validateTimeEntryAction } from "@/app/actions/timesheet";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,6 +38,10 @@ export default async function Home() {
     prismaFamilyRepository.listAbsences(user.familyId),
     isAdmin ? prismaFamilyRepository.getNanny(user.familyId) : prismaFamilyRepository.getNannyByUserId(user.id),
   ]);
+
+  const pendingTimeEntries = isAdmin
+    ? await prisma.timeEntry.findMany({ where: { familyId: user.familyId, arrivalAt: { not: null }, departureAt: { not: null }, status: "PENDING" }, orderBy: { workDate: "desc" }, include: { nanny: { select: { firstName: true, lastName: true } } }, take: 8 })
+    : [];
 
   const payroll = nanny ? (await getCurrentMonthPayroll(user.familyId, nanny.id))?.payroll ?? null : null;
   const tasksDone = allTasks.filter((task) => task.status === "DONE").length;
@@ -81,6 +86,21 @@ export default async function Home() {
         {isAdmin && <Link className="add-task-button" href="/tasks"><Plus size={17} /> {t("dashboard.addTask")}</Link>}
       </article>
     </section>
+
+    {isAdmin && pendingTimeEntries.length > 0 && <section className="table-card" style={{ marginTop: 15 }}>
+      <div className="card-heading"><div><p className="eyebrow">Pointages</p><h2>Pointages à valider</h2></div><Link href="/timesheet">{t("common.viewAll")}</Link></div>
+      <div className="time-table">{pendingTimeEntries.map((entry) => <div className="time-row" key={entry.id}>
+        <div><b>{entry.nanny.firstName} {entry.nanny.lastName}</b><small>{entry.workDate.toLocaleDateString(tag, { day: "2-digit", month: "short" })}</small></div>
+        <span>{entry.arrivalAt ? timeFormatter.format(entry.arrivalAt) : "—"}</span>
+        <span>{entry.departureAt ? timeFormatter.format(entry.departureAt) : "—"}</span>
+        <strong />
+        <em>En attente</em>
+        <div className="time-row-actions">
+          <form action={validateTimeEntryAction.bind(null, entry.id)}><button type="submit" className="more-button" aria-label="Valider ce pointage"><Check size={15} color="#4e7b68" /></button></form>
+          <form action={deleteTimeEntryAction.bind(null, entry.id)}><button type="submit" className="more-button" aria-label="Supprimer ce pointage"><Trash2 size={15} color="#b36551" /></button></form>
+        </div>
+      </div>)}</div>
+    </section>}
 
     {!isAdmin && <section className="lower-grid" style={{ marginTop: 15 }}>
       <article className="payroll-card">

@@ -54,6 +54,24 @@ export async function validateTimeEntryAction(entryId: string) {
   revalidatePath("/");
 }
 
+/** Permet à la famille de revenir sur une validation (le pointage repasse en attente). */
+export async function unvalidateTimeEntryAction(entryId: string) {
+  const admin = await requireFamilyAdmin();
+  await prisma.timeEntry.updateMany({ where: { id: entryId, familyId: admin.familyId }, data: { status: "PENDING" } });
+  revalidatePath("/timesheet");
+  revalidatePath("/payroll");
+  revalidatePath("/");
+}
+
+/** Permet à la famille de supprimer un pointage erroné. */
+export async function deleteTimeEntryAction(entryId: string) {
+  const admin = await requireFamilyAdmin();
+  await prisma.timeEntry.deleteMany({ where: { id: entryId, familyId: admin.familyId } });
+  revalidatePath("/timesheet");
+  revalidatePath("/payroll");
+  revalidatePath("/");
+}
+
 const manualEntrySchema = z.object({
   nannyId: z.string().min(1, "Employée requise."),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."),
@@ -79,6 +97,39 @@ export async function createManualTimeEntryAction(_prevState: TimesheetActionSta
     create: { familyId: admin.familyId, nannyId: nanny.id, workDate, arrivalAt, departureAt, status: "VALIDATED" },
     update: { arrivalAt, departureAt, status: "VALIDATED" },
   });
+
+  revalidatePath("/timesheet");
+  revalidatePath("/payroll");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+const updateEntrySchema = z.object({
+  entryId: z.string().min(1),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."),
+  arrival: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Heure d'arrivée invalide."),
+  departure: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Heure de départ invalide."),
+}).refine((data) => data.departure > data.arrival, { message: "Le départ doit être après l'arrivée.", path: ["departure"] });
+
+/** Permet à la famille de modifier un pointage existant (heures ou date incorrectes). */
+export async function updateTimeEntryAction(_prevState: TimesheetActionState, formData: FormData): Promise<TimesheetActionState> {
+  const admin = await requireFamilyAdmin();
+  const parsed = updateEntrySchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
+
+  const entry = await prisma.timeEntry.findFirst({ where: { id: parsed.data.entryId, familyId: admin.familyId } });
+  if (!entry) return { ok: false, error: "Pointage introuvable." };
+
+  const workDate = new Date(`${parsed.data.date}T00:00:00`);
+  const arrivalAt = new Date(`${parsed.data.date}T${parsed.data.arrival}:00`);
+  const departureAt = new Date(`${parsed.data.date}T${parsed.data.departure}:00`);
+
+  if (workDate.getTime() !== entry.workDate.getTime()) {
+    const conflict = await prisma.timeEntry.findUnique({ where: { nannyId_workDate: { nannyId: entry.nannyId, workDate } } });
+    if (conflict && conflict.id !== entry.id) return { ok: false, error: "Un pointage existe déjà pour cette employée à cette date." };
+  }
+
+  await prisma.timeEntry.update({ where: { id: entry.id }, data: { workDate, arrivalAt, departureAt, status: "VALIDATED" } });
 
   revalidatePath("/timesheet");
   revalidatePath("/payroll");
