@@ -45,6 +45,11 @@ enum AbsenceRequestStatus {
   REJECTED
 }
 
+enum TimeEntryStatus {
+  PENDING
+  VALIDATED
+}
+
 enum Locale {
   FR
   EN
@@ -170,17 +175,18 @@ model Schedule {
 }
 
 model TimeEntry {
-  id          String    @id @default(cuid())
+  id          String          @id @default(cuid())
   familyId    String
   nannyId     String
   workDate    DateTime
   arrivalAt   DateTime?
   departureAt DateTime?
+  status      TimeEntryStatus @default(PENDING)
   notes       String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  family      Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  nanny       Nanny     @relation(fields: [nannyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  family      Family          @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  nanny       Nanny           @relation(fields: [nannyId], references: [id], onDelete: Cascade)
   breaks      Break[]
 
   @@unique([nannyId, workDate])

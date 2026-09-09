@@ -1,7 +1,7 @@
 import { prisma } from "./prisma";
 import type { Absence, Child, Family, Nanny, ScheduleEvent, Task } from "./domain-types";
 import type { FamilyRepository } from "./repository";
-import { toIsoDate } from "@/lib/utils/dates";
+import { toIsoDate, toIsoDateTimeLocal } from "@/lib/utils/dates";
 
 const absenceTypeLabels: Record<string, string> = {
   CONGE: "Congé",
@@ -61,7 +61,7 @@ export const prismaFamilyRepository: FamilyRepository = {
   },
   async listNannies(familyId: string) {
     const records = await prisma.nanny.findMany({ where: { familyId }, include: { user: { select: { username: true } } }, orderBy: { createdAt: "asc" } });
-    return records.map((record) => ({ id: record.id, name: `${record.firstName} ${record.lastName}`, email: record.email, username: record.user?.username ?? null, hourlyRate: record.hourlyRate, monthlySalary: record.monthlySalary, weeklyHours: record.weeklyHours, hasAccount: record.userId !== null }));
+    return records.map((record) => ({ id: record.id, name: `${record.firstName} ${record.lastName}`, email: record.email, username: record.user?.username ?? null, hourlyRate: record.hourlyRate, monthlySalary: record.monthlySalary, weeklyHours: record.weeklyHours, hasAccount: record.userId !== null, startDate: record.startDate ? toIsoDateTimeLocal(record.startDate) : null }));
   },
   async listChildren(familyId: string) {
     const records = await prisma.child.findMany({ where: { familyId }, orderBy: { firstName: "asc" } });

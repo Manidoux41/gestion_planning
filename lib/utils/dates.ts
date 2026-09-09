@@ -10,12 +10,35 @@ export function getDayRange(date: Date): { start: Date; end: Date } {
   return { start, end };
 }
 
+/** Bornes du mois calendaire contenant la date fournie (fin exclusive, 1er du mois suivant). */
+export function getMonthBounds(date: Date): { start: Date; end: Date } {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+  return { start, end };
+}
+
+/** Bornes de la semaine (lundi 00:00 à lundi suivant 00:00) contenant la date fournie. */
+export function getWeekBounds(date: Date): { start: Date; end: Date } {
+  const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  const end = new Date(start);
+  end.setDate(start.getDate() + 7);
+  return { start, end };
+}
+
 /** Formate une date locale en yyyy-mm-dd, sans décalage de fuseau horaire (contrairement à toISOString). */
 export function toIsoDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+/** Formate une date locale en yyyy-mm-ddTHH:mm pour préremplir un input datetime-local. */
+export function toIsoDateTimeLocal(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${toIsoDate(date)}T${hours}:${minutes}`;
 }
 
 /** Calcule une durée lisible ("1h30", "45min") entre deux heures au format HH:mm. */

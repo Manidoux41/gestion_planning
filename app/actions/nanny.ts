@@ -16,6 +16,7 @@ const createNannySchema = z.object({
   username: z.string().trim().toLowerCase().min(3, "L'identifiant doit contenir au moins 3 caractères.").regex(usernamePattern, "Utilisez uniquement lettres, chiffres, points, tirets ou underscores."),
   contactEmail: z.string().trim().toLowerCase().email("Adresse email invalide.").optional().or(z.literal("")),
   password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères."),
+  startDate: z.string().min(1, "La date de début est requise."),
   weeklyHours: z.coerce.number().positive("Le nombre d'heures doit être positif."),
   monthlySalary: z.coerce.number().nonnegative().optional(),
   hourlyRate: z.coerce.number().nonnegative().optional(),
@@ -38,6 +39,7 @@ export async function createNannyAccountAction(_prevState: NannyActionState, for
         firstName: parsed.data.firstName,
         lastName: parsed.data.lastName,
         email: parsed.data.contactEmail || null,
+        startDate: new Date(parsed.data.startDate),
         weeklyHours: parsed.data.weeklyHours,
         monthlySalary: parsed.data.monthlySalary,
         hourlyRate: parsed.data.hourlyRate,
@@ -63,6 +65,7 @@ export async function createNannyAccountAction(_prevState: NannyActionState, for
 
 const updateRateSchema = z.object({
   nannyId: z.string().min(1),
+  startDate: z.string().min(1, "La date de début est requise."),
   weeklyHours: z.coerce.number().positive("Le nombre d'heures doit être positif."),
   monthlySalary: z.coerce.number().nonnegative().optional(),
   hourlyRate: z.coerce.number().nonnegative().optional(),
@@ -78,10 +81,11 @@ export async function updateNannyRateAction(_prevState: NannyActionState, formDa
 
   await prisma.nanny.update({
     where: { id: nanny.id },
-    data: { weeklyHours: parsed.data.weeklyHours, monthlySalary: parsed.data.monthlySalary, hourlyRate: parsed.data.hourlyRate },
+    data: { startDate: new Date(parsed.data.startDate), weeklyHours: parsed.data.weeklyHours, monthlySalary: parsed.data.monthlySalary, hourlyRate: parsed.data.hourlyRate },
   });
 
   revalidatePath("/nanny");
   revalidatePath("/payroll");
+  revalidatePath("/timesheet");
   return { ok: true };
 }

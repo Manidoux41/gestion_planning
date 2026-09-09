@@ -3,12 +3,13 @@ import { ChevronRight, Clock3, Plus } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { AbsenceRequestForm } from "@/components/dashboard/absence-request-form";
 import { DashboardTaskList, type DashboardTask } from "@/components/dashboard/dashboard-task-list";
+import { DashboardDateRefresher } from "@/components/dashboard/date-refresher";
 import { PayslipDownloadButton } from "@/components/dashboard/payslip-download-button";
 import { requireUser } from "@/lib/auth/guard";
 import { prisma } from "@/lib/db/prisma";
 import { prismaFamilyRepository } from "@/lib/db/prisma-repository";
-import { calculatePayroll } from "@/lib/payroll";
-import { getDayRange, getReferenceToday } from "@/lib/utils/dates";
+import { getCurrentMonthPayroll } from "@/lib/payroll";
+import { getDayRange, getReferenceToday, toIsoDate } from "@/lib/utils/dates";
 import { intlTag, translator } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
@@ -37,14 +38,14 @@ export default async function Home() {
     isAdmin ? prismaFamilyRepository.getNanny(user.familyId) : prismaFamilyRepository.getNannyByUserId(user.id),
   ]);
 
-  const payroll = nanny ? calculatePayroll({ weeklyHours: nanny.weeklyHours, monthlySalary: nanny.monthlySalary, workedHours: (nanny.weeklyHours * 52) / 12, overtimeRate: 1.25 }) : null;
+  const payroll = nanny ? (await getCurrentMonthPayroll(user.familyId, nanny.id))?.payroll ?? null : null;
   const tasksDone = allTasks.filter((task) => task.status === "DONE").length;
   const myAbsences = isAdmin ? absences : absences.filter((absence) => absence.person === nanny?.name);
   const pendingCount = absences.filter((absence) => absence.status === "Planifiée").length;
 
   const dashboardTasks: DashboardTask[] = todaysTasks.map((task) => ({ id: task.id, title: task.title, time: task.dueAt ? timeFormatter.format(task.dueAt) : "", child: task.child?.firstName ?? "Famille", done: task.status === "DONE" }));
 
-  return <AppShell activePath="/" user={user}><div className="content-wrap">
+  return <AppShell activePath="/" user={user}><DashboardDateRefresher serverDate={toIsoDate(today)} /><div className="content-wrap">
     <section className="welcome-row">
       <div><p className="eyebrow">{dateFormatter.format(today)}</p><h1>Bonjour, {user.name.split(" ")[0]} <span>✦</span></h1><p className="welcome-copy">{isAdmin ? t("dashboard.subtitleAdmin") : t("dashboard.subtitleNanny")}</p></div>
       {isAdmin && <Link className="primary-button" href="/tasks"><Plus size={18} /> {t("dashboard.addTask")}</Link>}
