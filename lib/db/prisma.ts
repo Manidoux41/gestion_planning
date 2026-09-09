@@ -2,6 +2,10 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/lib/generated/prisma/client";
 import { Pool } from "pg";
 
+// Sécurité redondante : garantit le fuseau du Cambodge (UTC+7) même si next.config.ts
+// n'est pas exécuté par la fonction serverless (ex. Vercel).
+process.env.TZ = "Asia/Phnom_Penh";
+
 declare global {
   var prisma: PrismaClient | undefined;
   var prismaPool: Pool | undefined;

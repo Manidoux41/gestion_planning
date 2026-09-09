@@ -2,6 +2,7 @@ import { Check, Clock3, LogIn } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ClockButtons } from "@/components/timesheet/clock-buttons";
 import { ExportTimesheetButton } from "@/components/timesheet/export-timesheet-button";
+import { ManualTimeEntryForm } from "@/components/timesheet/manual-entry-form";
 import { requireUser } from "@/lib/auth/guard";
 import { prisma } from "@/lib/db/prisma";
 import { translator } from "@/lib/i18n";
@@ -66,11 +67,13 @@ export default async function TimesheetPage() {
     };
   });
 
-  return <AppShell activePath="/timesheet" user={user}><div className="content-wrap app-page"><div className="page-heading"><div><p className="eyebrow">Suivi du temps</p><h1>{t("timesheet.title")}</h1><p className="page-subtitle">{t("timesheet.subtitle")}</p></div><ExportTimesheetButton entries={rows} /></div>
+  return <AppShell activePath="/timesheet" user={user}><div className="content-wrap app-page"><div className="page-heading"><div><p className="eyebrow">Suivi du temps</p><h1>{t("timesheet.title")}</h1><p className="page-subtitle">{t("timesheet.subtitle")}</p></div><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{isAdmin && <ManualTimeEntryForm nannies={nannies.map((nanny) => ({ id: nanny.id, name: `${nanny.firstName} ${nanny.lastName}` }))} />}<ExportTimesheetButton entries={rows} /></div></div>
 
     {!isAdmin && <section className="clock-panel"><div><p className="eyebrow">Aujourd&apos;hui · {dayFormatter.format(today)}</p><h2>{clockState === "clocked-in" ? "La journée est en cours" : clockState === "clocked-out" ? "Journée terminée" : "Prête à commencer ?"}</h2>{clockState !== "not-started" && <p>Arrivée pointée à {arrivalLabel}.</p>}</div><ClockButtons state={clockState} arrivalLabel={arrivalLabel} /></section>}
 
     <div className="quick-stats"><div><Clock3 size={18} /><span>Cette semaine</span><strong>{formatHours(weekHours)}</strong></div><div><Check size={18} /><span>Ce mois</span><strong>{formatHours(monthHours)}</strong></div><div><LogIn size={18} /><span>Heures prévues</span><strong>{formatHours(plannedHours)}</strong></div></div>
+
+    {nannies[0] && <section className="table-card"><div className="card-heading"><div><p className="eyebrow">{isAdmin ? `${nannies[0].firstName} ${nannies[0].lastName}` : "Mon quota"}</p><h2>Quota d&apos;heures du mois</h2></div><strong>{Math.min(100, Math.round((monthHours / plannedHours) * 100 || 0))}%</strong></div><div className="quota-bar"><div className="quota-bar-fill" style={{ width: `${Math.min(100, (monthHours / plannedHours) * 100 || 0)}%` }} /></div><p className="page-subtitle">{formatHours(monthHours)} validées sur {formatHours(plannedHours)} prévues · estimation utile pour anticiper la prochaine paie.</p></section>}
 
     <section className="table-card"><div className="card-heading"><div><p className="eyebrow">Ce mois-ci</p><h2>Historique des pointages</h2></div></div><div className="time-table">{rows.length === 0 && <p className="page-subtitle">Aucun pointage ce mois-ci.</p>}{rows.map((entry) => <div className="time-row" key={entry.id}><div><b>{entry.day}</b><small>{entry.date}</small></div><span>{entry.arrival}</span><span>{entry.departure}</span><strong>{entry.duration}</strong><em className={entry.status === "En cours" ? "current" : ""}>{entry.status}</em>{entry.canValidate && <form action={validateTimeEntryAction.bind(null, entry.id)}><button type="submit" className="more-button" aria-label="Valider ce pointage"><Check size={16} color="#4e7b68" /></button></form>}</div>)}</div></section>
   </div></AppShell>;

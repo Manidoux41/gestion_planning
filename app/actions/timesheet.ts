@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireFamilyAdmin, requireUser } from "@/lib/auth/guard";
 import { getDayRange, getReferenceToday } from "@/lib/utils/dates";
@@ -51,4 +52,36 @@ export async function validateTimeEntryAction(entryId: string) {
   revalidatePath("/timesheet");
   revalidatePath("/payroll");
   revalidatePath("/");
+}
+
+const manualEntrySchema = z.object({
+  nannyId: z.string().min(1, "Employée requise."),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."),
+  arrival: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Heure d'arrivée invalide."),
+  departure: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Heure de départ invalide."),
+}).refine((data) => data.departure > data.arrival, { message: "Le départ doit être après l'arrivée.", path: ["departure"] });
+
+/** Permet à la famille d'ajouter ou de corriger manuellement un pointage (oublié ou noté en retard). */
+export async function createManualTimeEntryAction(_prevState: TimesheetActionState, formData: FormData): Promise<TimesheetActionState> {
+  const admin = await requireFamilyAdmin();
+  const parsed = manualEntrySchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
+
+  const nanny = await prisma.nanny.findFirst({ where: { id: parsed.data.nannyId, familyId: admin.familyId } });
+  if (!nanny) return { ok: false, error: "Employée introuvable." };
+
+  const workDate = new Date(`${parsed.data.date}T00:00:00`);
+  const arrivalAt = new Date(`${parsed.data.date}T${parsed.data.arrival}:00`);
+  const departureAt = new Date(`${parsed.data.date}T${parsed.data.departure}:00`);
+
+  await prisma.timeEntry.upsert({
+    where: { nannyId_workDate: { nannyId: nanny.id, workDate } },
+    create: { familyId: admin.familyId, nannyId: nanny.id, workDate, arrivalAt, departureAt, status: "VALIDATED" },
+    update: { arrivalAt, departureAt, status: "VALIDATED" },
+  });
+
+  revalidatePath("/timesheet");
+  revalidatePath("/payroll");
+  revalidatePath("/");
+  return { ok: true };
 }
