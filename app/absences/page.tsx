@@ -1,0 +1,4 @@
+import { CalendarOff, Plus } from "lucide-react";
+import { AppShell } from "@/components/layout/app-shell";
+import { mockAbsences } from "@/lib/db";
+export default function AbsencesPage() { return <AppShell activePath="/settings"><div className="content-wrap app-page"><div className="page-heading"><div><p className="eyebrow">Calendrier du travail</p><h1>Les absences</h1><p className="page-subtitle">Les absences seront déduites des calculs mensuels.</p></div><button className="primary-button"><Plus size={17} /> Déclarer une absence</button></div><section className="absence-list">{mockAbsences.map((absence) => <article className="absence-row" key={absence.date}><span className="settings-icon"><CalendarOff size={18} /></span><div><b>{absence.type}</b><small>{absence.person} · {absence.duration}</small></div><strong>{absence.date}</strong><em>{absence.status}</em></article>)}</section></div></AppShell>; }

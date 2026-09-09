@@ -1,0 +1,270 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+}
+
+enum TaskPriority {
+  NORMALE
+  IMPORTANT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum AbsenceType {
+  CONGE
+  MALADIE
+  EXCEPTIONNELLE
+  JOUR_FERIE
+  ABSENCE_ENFANT
+  ABSENCE_NOUNOU
+}
+
+enum PaymentStatus {
+  DRAFT
+  PREPARED
+  PAID
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole @default(OWNER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  families  Family[]
+}
+
+model Family {
+  id            String          @id @default(cuid())
+  ownerId       String
+  name          String
+  address       String?
+  phone         String?
+  email         String?
+  currency      String          @default("USD")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  owner         User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  nannies       Nanny[]
+  children      Child[]
+  schedules     Schedule[]
+  timeEntries   TimeEntry[]
+  tasks         Task[]
+  taskTemplates TaskTemplate[]
+  absences      Absence[]
+  payrolls      PayrollPeriod[]
+  payments      Payment[]
+
+  @@index([ownerId])
+}
+
+model Nanny {
+  id            String        @id @default(cuid())
+  familyId      String
+  firstName     String
+  lastName      String
+  phone         String?
+  email         String?
+  address       String?
+  startDate     DateTime?
+  contractType  String?
+  hourlyRate    Float?
+  monthlySalary Float?
+  weeklyHours   Float
+  workDays      String[]
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  family        Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  schedules     Schedule[]
+  timeEntries   TimeEntry[]
+  breaks        Break[]
+  absences      Absence[]
+  payrollItems  PayrollItem[]
+
+  @@index([familyId])
+}
+
+model Child {
+  id              String     @id @default(cuid())
+  familyId        String
+  firstName       String
+  lastName        String?
+  birthDate       DateTime?
+  school          String?
+  schoolStartTime String?
+  schoolEndTime   String?
+  specialInfo     String?
+  notes           String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  family          Family     @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  schedules       Schedule[]
+  tasks           Task[]
+
+  @@index([familyId])
+}
+
+model Schedule {
+  id        String    @id @default(cuid())
+  familyId  String
+  nannyId   String?
+  childId   String?
+  title     String
+  type      String
+  startsAt  DateTime
+  endsAt    DateTime?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  family    Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  nanny     Nanny?    @relation(fields: [nannyId], references: [id], onDelete: SetNull)
+  child     Child?    @relation(fields: [childId], references: [id], onDelete: SetNull)
+
+  @@index([familyId, startsAt])
+}
+
+model TimeEntry {
+  id          String    @id @default(cuid())
+  familyId    String
+  nannyId     String
+  workDate    DateTime
+  arrivalAt   DateTime?
+  departureAt DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  family      Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  nanny       Nanny     @relation(fields: [nannyId], references: [id], onDelete: Cascade)
+  breaks      Break[]
+
+  @@unique([nannyId, workDate])
+  @@index([familyId, workDate])
+}
+
+model Break {
+  id          String    @id @default(cuid())
+  nannyId     String
+  timeEntryId String
+  startsAt    DateTime
+  endsAt      DateTime?
+  timeEntry   TimeEntry @relation(fields: [timeEntryId], references: [id], onDelete: Cascade)
+  nanny       Nanny     @relation(fields: [nannyId], references: [id], onDelete: Cascade)
+
+  @@index([timeEntryId])
+}
+
+model Task {
+  id               String       @id @default(cuid())
+  familyId         String
+  childId          String?
+  title            String
+  description      String?
+  dueAt            DateTime?
+  estimatedMinutes Int?
+  category         String
+  status           TaskStatus   @default(TODO)
+  priority         TaskPriority @default(NORMALE)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  family           Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  child            Child?       @relation(fields: [childId], references: [id], onDelete: SetNull)
+
+  @@index([familyId, dueAt])
+}
+
+model TaskTemplate {
+  id          String   @id @default(cuid())
+  familyId    String
+  title       String
+  description String?
+  recurrence  String
+  time        String?
+  category    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  family      Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+}
+
+model Absence {
+  id        String      @id @default(cuid())
+  familyId  String
+  nannyId   String?
+  childId   String?
+  type      AbsenceType
+  startsOn  DateTime
+  endsOn    DateTime
+  comment   String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  family    Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  nanny     Nanny?      @relation(fields: [nannyId], references: [id], onDelete: SetNull)
+
+  @@index([familyId, startsOn, endsOn])
+}
+
+model PayrollPeriod {
+  id            String        @id @default(cuid())
+  familyId      String
+  startsOn      DateTime
+  endsOn        DateTime
+  plannedHours  Float
+  workedHours   Float
+  normalHours   Float
+  overtimeHours Float
+  grossAmount   Float
+  status        PaymentStatus @default(DRAFT)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  family        Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  items         PayrollItem[]
+  payment       Payment?
+
+  @@unique([familyId, startsOn, endsOn])
+}
+
+model PayrollItem {
+  id              String        @id @default(cuid())
+  payrollPeriodId String
+  nannyId         String
+  label           String
+  quantity        Float
+  unitAmount      Float
+  totalAmount     Float
+  payrollPeriod   PayrollPeriod @relation(fields: [payrollPeriodId], references: [id], onDelete: Cascade)
+  nanny           Nanny         @relation(fields: [nannyId], references: [id], onDelete: Cascade)
+
+  @@index([payrollPeriodId])
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  familyId        String
+  payrollPeriodId String        @unique
+  amount          Float
+  currency        String
+  paidOn          DateTime?
+  status          PaymentStatus @default(DRAFT)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  family          Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  payrollPeriod   PayrollPeriod @relation(fields: [payrollPeriodId], references: [id], onDelete: Cascade)
+
+  @@index([familyId, paidOn])
+}

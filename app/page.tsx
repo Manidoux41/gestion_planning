@@ -1,69 +1,16 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ArrowUpRight, Check, ChevronRight, Clock3, MoreHorizontal, Plus } from "lucide-react";
+import { AppShell } from "@/components/layout/app-shell";
+import { dashboardData } from "@/lib/demo/dashboard";
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+}
+
+function StatCard({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: "green" | "blue" | "peach" | "purple" }) {
+  return <article className={`stat-card stat-card-${tone}`}><div className="stat-card-heading"><span>{label}</span><ArrowUpRight size={17} /></div><strong>{value}</strong><p>{detail}</p></article>;
+}
 
 export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+  return <AppShell activePath="/"><div className="content-wrap"><section className="welcome-row"><div><p className="eyebrow">Mardi 9 septembre 2026</p><h1>Bonjour, Amélie <span>✦</span></h1><p className="welcome-copy">Voici un aperçu de votre organisation familiale.</p></div><Link className="primary-button" href="/tasks"><Plus size={18} /> Ajouter une tâche</Link></section><section className="today-panel"><div className="today-intro"><div className="section-icon green-icon"><Clock3 size={20} /></div><div><p className="eyebrow">Aujourd&apos;hui</p><h2>La journée de Boneth</h2></div><span className="status-pill"><span /> En cours</span></div><div className="today-metrics"><div><small>Arrivée prévue</small><strong>08:00</strong></div><div><small>Arrivée réelle</small><strong>08:04</strong></div><div><small>Départ prévu</small><strong>18:00</strong></div><div><small>Temps travaillé</small><strong>6h 42</strong></div></div><Link className="outline-button" href="/schedule">Voir le planning <ChevronRight size={16} /></Link></section><div className="section-heading"><div><p className="eyebrow">Votre activité</p><h2>Ce mois-ci</h2></div><button className="period-button">Septembre 2026 <ChevronRight size={15} /></button></div><section className="stats-grid"><StatCard label="Heures prévues" value="160h 00" detail="Selon votre contrat" tone="green" /><StatCard label="Heures travaillées" value="126h 42" detail="79% du mois écoulé" tone="blue" /><StatCard label="Heures supplémentaires" value="02h 15" detail="+ 24 $ estimés" tone="peach" /><StatCard label="Salaire estimé" value={formatCurrency(dashboardData.estimatedSalary)} detail="Prochaine paie · 30 sept." tone="purple" /></section><section className="lower-grid"><article className="chart-card"><div className="card-heading"><div><p className="eyebrow">Suivi du temps</p><h2>Heures travaillées</h2></div><span className="legend"><i /> Heures par jour</span></div><div className="chart-area"><div className="chart-y-axis"><span>10h</span><span>8h</span><span>6h</span><span>4h</span><span>2h</span><span>0h</span></div><div className="chart-bars">{dashboardData.workedHours.map((day) => <div className="bar-column" key={day.label}><div className="bar-track"><div className="bar-value" style={{ height: `${day.hours * 9}%` }}><span>{day.hours}h</span></div></div><small>{day.label}</small></div>)}</div></div></article><article className="tasks-card"><div className="card-heading"><div><p className="eyebrow">À ne pas oublier</p><h2>Tâches du jour</h2></div><Link href="/tasks">Tout voir</Link></div><div className="task-list">{dashboardData.tasks.map((task) => <div className={`task-row ${task.done ? "done" : ""}`} key={task.title}><span className="task-check">{task.done && <Check size={14} />}</span><div><b>{task.title}</b><small>{task.time} · {task.child}</small></div><button className="more-button" aria-label={`Options pour ${task.title}`}><MoreHorizontal size={18} /></button></div>)}</div><Link className="add-task-button" href="/tasks"><Plus size={17} /> Ajouter une tâche</Link></article></section></div></AppShell>;
 }
