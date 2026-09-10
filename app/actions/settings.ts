@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireFamilyAdmin, requireUser } from "@/lib/auth/guard";
-import { saveImageUpload, UploadError } from "@/lib/uploads/store";
+import { sanitizePhotoUrl, UploadError } from "@/lib/uploads/store";
 import type { Locale } from "@/lib/i18n";
 
 const allowedLocales: Locale[] = ["FR", "EN", "KM"];
@@ -29,7 +29,7 @@ const familyProfileSchema = z.object({
 
 export async function updateFamilyProfileAction(_prevState: FamilyProfileState, formData: FormData): Promise<FamilyProfileState> {
   const admin = await requireFamilyAdmin();
-  const { photo, latitude, longitude, ...rest } = Object.fromEntries(formData) as Record<string, FormDataEntryValue>;
+  const { photoUrl: rawPhotoUrl, latitude, longitude, ...rest } = Object.fromEntries(formData) as Record<string, FormDataEntryValue>;
   const parsed = familyProfileSchema.safeParse({
     ...rest,
     latitude: latitude === "" ? undefined : latitude,
@@ -39,7 +39,7 @@ export async function updateFamilyProfileAction(_prevState: FamilyProfileState, 
 
   let photoUrl: string | null = null;
   try {
-    photoUrl = await saveImageUpload(photo ?? null, "families");
+    photoUrl = sanitizePhotoUrl(rawPhotoUrl ?? null);
   } catch (error) {
     return { ok: false, error: error instanceof UploadError ? error.message : "Échec de l'envoi de la photo." };
   }

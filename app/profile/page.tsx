@@ -6,6 +6,7 @@ import { TelegramCallButton } from "@/components/contact/telegram-call-button";
 import { requireUser } from "@/lib/auth/guard";
 import { prisma } from "@/lib/db/prisma";
 import { googleMapsLink } from "@/lib/utils/maps";
+import { isBlobUploadEnabled } from "@/lib/uploads/store";
 import { translator } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,7 @@ export default async function ProfilePage() {
       <div className="content-wrap app-page">
         <div className="page-heading"><div><p className="eyebrow">{user.familyName}</p><h1>{t("profile.title")}</h1><p className="page-subtitle">{t("profile.subtitle")}</p></div></div>
         <section className="settings-list">
-          <NannyProfileForm name={`${nanny.firstName} ${nanny.lastName}`} phone={nanny.phone} address={nanny.address} idDocument={nanny.idDocument} photoUrl={nanny.photoUrl} />
+          <NannyProfileForm name={`${nanny.firstName} ${nanny.lastName}`} phone={nanny.phone} address={nanny.address} idDocument={nanny.idDocument} photoUrl={nanny.photoUrl} blobEnabled={isBlobUploadEnabled()} />
           <div className="settings-panel">
             <b>{t("profile.familyContact")}</b>
             {family?.phone && <div className="entity-detail"><Phone size={15} /><span>{family.phone}</span></div>}

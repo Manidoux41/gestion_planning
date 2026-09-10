@@ -4,7 +4,10 @@ import path from "node:path";
 
 export type UploadFolder = "nannies" | "children" | "families";
 
-const MAX_BYTES = 4 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+export const UPLOAD_FOLDERS: UploadFolder[] = ["nannies", "children", "families"];
+
 const PUBLIC_ROOT = path.join(process.cwd(), "public", "uploads");
 
 /** Extensions autorisées, indexées par type MIME. Le nom de fichier client n'est jamais réutilisé. */
@@ -23,12 +26,29 @@ const signatures: Record<string, (bytes: Uint8Array) => boolean> = {
 
 export class UploadError extends Error {}
 
-/** Enregistre une photo de profil et renvoie son chemin public, ou `null` si aucun fichier n'a été fourni. */
-export async function saveImageUpload(value: FormDataEntryValue | null, folder: UploadFolder): Promise<string | null> {
-  if (!value || typeof value === "string") return null;
-  const file = value;
-  if (file.size === 0) return null;
-  if (file.size > MAX_BYTES) throw new UploadError("La photo ne doit pas dépasser 4 Mo.");
+/** Les envois passent par Vercel Blob dès qu'un jeton est disponible, sinon par le disque local. */
+export function isBlobUploadEnabled(): boolean {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
+/** N'accepte que les adresses produites par notre propre pipeline d'upload. */
+export function sanitizePhotoUrl(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const candidate = value.trim();
+  if (candidate.startsWith("/uploads/") && !candidate.includes("..")) return candidate;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol === "https:" && parsed.hostname.endsWith(".public.blob.vercel-storage.com")) return parsed.toString();
+  } catch {
+    throw new UploadError("Adresse de photo invalide.");
+  }
+  throw new UploadError("Adresse de photo invalide.");
+}
+
+/** Repli de développement : écrit l'image sur le disque après validation complète. */
+export async function saveImageToDisk(file: File, folder: UploadFolder): Promise<string> {
+  if (file.size === 0) throw new UploadError("Fichier vide.");
+  if (file.size > MAX_UPLOAD_BYTES) throw new UploadError("La photo ne doit pas dépasser 5 Mo.");
 
   const extension = allowedTypes[file.type];
   if (!extension) throw new UploadError("Format non supporté. Utilisez une image JPG, PNG ou WEBP.");

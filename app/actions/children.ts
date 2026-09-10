@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireFamilyAdmin } from "@/lib/auth/guard";
 import { prismaFamilyRepository } from "@/lib/db/prisma-repository";
-import { saveImageUpload, UploadError } from "@/lib/uploads/store";
+import { sanitizePhotoUrl, UploadError } from "@/lib/uploads/store";
 
 const childInput = z.object({ name: z.string().trim().min(2), school: z.string().trim().max(120).optional(), age: z.coerce.number().int().min(0).max(18) });
 
@@ -37,7 +37,7 @@ export async function updateChildPhotoAction(_prevState: ChildPhotoState, formDa
 
   let photoUrl: string | null = null;
   try {
-    photoUrl = await saveImageUpload(formData.get("photo"), "children");
+    photoUrl = sanitizePhotoUrl(formData.get("photoUrl"));
   } catch (error) {
     return { ok: false, error: error instanceof UploadError ? error.message : "Échec de l'envoi de la photo." };
   }

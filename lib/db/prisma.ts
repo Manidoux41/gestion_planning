@@ -19,13 +19,20 @@ function createPrismaClient() {
   return { client: new PrismaClient({ adapter }), pool };
 }
 
-const resources = globalThis.prisma && globalThis.prismaPool
-  ? { client: globalThis.prisma, pool: globalThis.prismaPool }
-  : createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
+function getPrismaClient(): PrismaClient {
+  if (globalThis.prisma) return globalThis.prisma;
+  const resources = createPrismaClient();
   globalThis.prisma = resources.client;
   globalThis.prismaPool = resources.pool;
+  return resources.client;
 }
 
-export const prisma = resources.client;
+// Instanciation paresseuse : la collecte des pages au build ne dispose pas de DATABASE_URL.
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, property) {
+    const client = getPrismaClient();
+    const value = Reflect.get(client, property, client);
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
+

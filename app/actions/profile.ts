@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { requireUser } from "@/lib/auth/guard";
-import { saveImageUpload, UploadError } from "@/lib/uploads/store";
+import { sanitizePhotoUrl, UploadError } from "@/lib/uploads/store";
 
 export type OwnProfileState = { ok: boolean; error?: string };
 
@@ -19,13 +19,13 @@ export async function updateOwnNannyProfileAction(_prevState: OwnProfileState, f
   const user = await requireUser();
   if (user.role !== "NANNY" || !user.nannyId) return { ok: false, error: "Profil indisponible." };
 
-  const { photo, ...fields } = Object.fromEntries(formData) as Record<string, FormDataEntryValue>;
+  const { photoUrl: rawPhotoUrl, ...fields } = Object.fromEntries(formData) as Record<string, FormDataEntryValue>;
   const parsed = ownProfileSchema.safeParse(fields);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
 
   let photoUrl: string | null = null;
   try {
-    photoUrl = await saveImageUpload(photo ?? null, "nannies");
+    photoUrl = sanitizePhotoUrl(rawPhotoUrl ?? null);
   } catch (error) {
     return { ok: false, error: error instanceof UploadError ? error.message : "Échec de l'envoi de la photo." };
   }

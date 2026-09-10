@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { requireFamilyAdmin } from "@/lib/auth/guard";
-import { saveImageUpload, UploadError } from "@/lib/uploads/store";
+import { sanitizePhotoUrl, UploadError } from "@/lib/uploads/store";
 
 export type NannyActionState = { ok: boolean; error?: string };
 
@@ -101,7 +101,7 @@ const profileSchema = z.object({
 
 export async function updateNannyProfileAction(_prevState: NannyActionState, formData: FormData): Promise<NannyActionState> {
   const admin = await requireFamilyAdmin();
-  const { photo, ...fields } = Object.fromEntries(formData) as Record<string, FormDataEntryValue>;
+  const { photoUrl: rawPhotoUrl, ...fields } = Object.fromEntries(formData) as Record<string, FormDataEntryValue>;
   const parsed = profileSchema.safeParse(fields);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
 
@@ -110,7 +110,7 @@ export async function updateNannyProfileAction(_prevState: NannyActionState, for
 
   let photoUrl: string | null = null;
   try {
-    photoUrl = await saveImageUpload(photo ?? null, "nannies");
+    photoUrl = sanitizePhotoUrl(rawPhotoUrl ?? null);
   } catch (error) {
     return { ok: false, error: error instanceof UploadError ? error.message : "Échec de l'envoi de la photo." };
   }

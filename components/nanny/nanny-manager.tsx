@@ -7,10 +7,11 @@ import { createNannyAccountAction, updateNannyProfileAction, updateNannyRateActi
 import { toIsoDateTimeLocal } from "@/lib/utils/dates";
 import { TelegramCallButton } from "@/components/contact/telegram-call-button";
 import { ProfileAvatar } from "@/components/ui/profile-avatar";
+import { PhotoUploadField } from "@/components/ui/photo-upload-field";
 
 const initialState: NannyActionState = { ok: false };
 
-export function NannyManager({ nannies }: { nannies: NannyRecord[] }) {
+export function NannyManager({ nannies, blobEnabled }: { nannies: NannyRecord[]; blobEnabled: boolean }) {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<NannyRecord | null>(null);
   const [profiling, setProfiling] = useState<NannyRecord | null>(null);
@@ -61,8 +62,7 @@ export function NannyManager({ nannies }: { nannies: NannyRecord[] }) {
       <p className="eyebrow">{profiling.name}</p><h2>Profil de l&apos;employée</h2>
       <input type="hidden" name="nannyId" value={profiling.id} />
       <div className="profile-photo-row">
-        <ProfileAvatar photoUrl={profiling.photoUrl} initials={profiling.name.slice(0, 2).toUpperCase()} />
-        <label style={{ flex: 1 }}>Photo de profil (JPG, PNG ou WEBP — 4 Mo max)<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" /></label>
+        <PhotoUploadField folder="nannies" blobEnabled={blobEnabled} initials={profiling.name.slice(0, 2).toUpperCase()} currentPhotoUrl={profiling.photoUrl} />
       </div>
       <label>Numéro de téléphone<input type="tel" name="phone" placeholder="+855 12 345 678" defaultValue={profiling.phone ?? ""} /></label>
       <label>Adresse<input name="address" placeholder="Rue, ville, pays" defaultValue={profiling.address ?? ""} /></label>
