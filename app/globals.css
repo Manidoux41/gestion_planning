@@ -60,6 +60,7 @@ button { font: inherit; }
 .workspace-switcher { margin: 40px 0 30px; padding: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 12px; color: #738078; }
 .workspace-switcher > span:nth-child(2) { flex: 1; display: grid; gap: 3px; }
 .workspace-switcher b { color: var(--foreground); font-size: 12px; }
+.workspace-switcher { text-decoration: none; color: inherit; }
 .workspace-switcher small, .sidebar-footer small { font-size: 10px; color: var(--ink-soft); }
 .family-avatar, .profile-avatar { display: grid; place-items: center; border-radius: 50%; background: #dfece4; color: var(--green-dark); font-weight: 700; }
 .family-avatar { width: 28px; height: 28px; font-size: 12px; }

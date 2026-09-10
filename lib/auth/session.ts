@@ -12,6 +12,7 @@ export type SessionUser = {
   role: SessionRole;
   familyId: string;
   familyName: string;
+  familyPhotoUrl: string | null;
   nannyId: string | null;
   initials: string;
   language: SessionLocale;
@@ -72,10 +73,10 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     if (!user.nanny) return null;
     const family = await prisma.family.findUnique({ where: { id: user.nanny.familyId } });
     if (!family) return null;
-    return { id: user.id, name: user.name, email: user.email, role: "NANNY", familyId: family.id, familyName: family.name, nannyId: user.nanny.id, initials: initialsOf(user.name), language: family.language };
+    return { id: user.id, name: user.name, email: user.email, role: "NANNY", familyId: family.id, familyName: family.name, familyPhotoUrl: family.photoUrl, nannyId: user.nanny.id, initials: initialsOf(user.name), language: family.language };
   }
 
   const family = user.families[0];
   if (!family) return null;
-  return { id: user.id, name: user.name, email: user.email, role: user.role, familyId: family.id, familyName: family.name, nannyId: null, initials: initialsOf(user.name), language: family.language };
+  return { id: user.id, name: user.name, email: user.email, role: user.role, familyId: family.id, familyName: family.name, familyPhotoUrl: family.photoUrl, nannyId: null, initials: initialsOf(user.name), language: family.language };
 }
