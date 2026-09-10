@@ -22,6 +22,7 @@ function getNavigation(t: (key: string) => string) {
     { label: t("nav.schedule"), href: "/schedule", icon: CalendarDays },
     { label: t("nav.timesheet"), href: "/timesheet", icon: Clock3 },
     { label: t("nav.tasks"), href: "/tasks", icon: Check },
+    { label: t("nav.children"), href: "/children", icon: Users },
     { label: t("nav.profile"), href: "/profile", icon: UserRound },
   ];
   return { admin, nanny };

@@ -23,9 +23,30 @@ function toNanny(record: { id: string; firstName: string; lastName: string; phon
 }
 
 
-function toChild(record: { id: string; firstName: string; lastName: string | null; school: string | null; photoUrl?: string | null }): Child {
+function ageFromBirthDate(birthDate: Date | null): number {
+  if (!birthDate) return 0;
+  const now = new Date();
+  let age = now.getFullYear() - birthDate.getFullYear();
+  const monthDiff = now.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) age -= 1;
+  return Math.max(0, age);
+}
+
+function toChild(record: { id: string; firstName: string; lastName: string | null; school: string | null; birthDate?: Date | null; schoolStartTime?: string | null; schoolEndTime?: string | null; notes?: string | null; photoUrl?: string | null }): Child {
   const name = [record.firstName, record.lastName].filter(Boolean).join(" ");
-  return { id: record.id, name, age: 0, school: record.school ?? "À préciser", color: "sage", initials: name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase(), photoUrl: record.photoUrl ?? null };
+  return {
+    id: record.id,
+    name,
+    age: ageFromBirthDate(record.birthDate ?? null),
+    birthDate: record.birthDate ? toIsoDate(record.birthDate) : null,
+    school: record.school ?? "À préciser",
+    schoolStartTime: record.schoolStartTime ?? null,
+    schoolEndTime: record.schoolEndTime ?? null,
+    notes: record.notes ?? null,
+    color: "sage",
+    initials: name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase(),
+    photoUrl: record.photoUrl ?? null,
+  };
 }
 
 function toTask(record: { id: string; title: string; dueAt: Date | null; endAt: Date | null; category: string; priority: "NORMALE" | "IMPORTANT"; status: "TODO" | "IN_PROGRESS" | "DONE"; child: { firstName: string } | null }): Task {
@@ -69,7 +90,18 @@ export const prismaFamilyRepository: FamilyRepository = {
   },
   async createChild(familyId: string, child: Omit<Child, "id">) {
     const [firstName = "Enfant", ...lastNameParts] = child.name.trim().split(/\s+/);
-    const record = await prisma.child.create({ data: { familyId, firstName, lastName: lastNameParts.join(" ") || null, school: child.school } });
+    const record = await prisma.child.create({
+      data: {
+        familyId,
+        firstName,
+        lastName: lastNameParts.join(" ") || null,
+        school: child.school,
+        birthDate: child.birthDate ? new Date(child.birthDate) : null,
+        schoolStartTime: child.schoolStartTime,
+        schoolEndTime: child.schoolEndTime,
+        notes: child.notes,
+      },
+    });
     return toChild(record);
   },
   async listTasks(familyId: string) {
