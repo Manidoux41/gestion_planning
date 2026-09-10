@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, Check, ChevronRight, Clock3, FileText, Home, LogOut, Settings, Sparkles, Users } from "lucide-react";
+import { CalendarDays, Check, ChevronRight, Clock3, FileText, Home, LogOut, Settings, Sparkles, UserRound, Users } from "lucide-react";
 import type { SessionUser } from "@/lib/auth/session";
 import { logoutAction } from "@/app/actions/auth";
 import { translator } from "@/lib/i18n";
@@ -21,6 +21,7 @@ function getNavigation(t: (key: string) => string) {
     { label: t("nav.schedule"), href: "/schedule", icon: CalendarDays },
     { label: t("nav.timesheet"), href: "/timesheet", icon: Clock3 },
     { label: t("nav.tasks"), href: "/tasks", icon: Check },
+    { label: t("nav.profile"), href: "/profile", icon: UserRound },
   ];
   return { admin, nanny };
 }

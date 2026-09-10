@@ -91,8 +91,12 @@ model Family {
   ownerId       String
   name          String
   address       String?
+  latitude      Float?
+  longitude     Float?
   phone         String?
   email         String?
+  idDocument    String?
+  photoUrl      String?
   currency      String          @default("USD")
   language      Locale          @default(FR)
   createdAt     DateTime        @default(now())
@@ -120,6 +124,8 @@ model Nanny {
   phone         String?
   email         String?
   address       String?
+  idDocument    String?
+  photoUrl      String?
   startDate     DateTime?
   contractType  String?
   hourlyRate    Float?
@@ -149,6 +155,7 @@ model Child {
   school          String?
   schoolStartTime String?
   schoolEndTime   String?
+  photoUrl        String?
   specialInfo     String?
   notes           String?
   createdAt       DateTime   @default(now())

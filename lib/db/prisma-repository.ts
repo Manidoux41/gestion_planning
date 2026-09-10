@@ -23,9 +23,9 @@ function toNanny(record: { id: string; firstName: string; lastName: string; phon
 }
 
 
-function toChild(record: { id: string; firstName: string; lastName: string | null; school: string | null }): Child {
+function toChild(record: { id: string; firstName: string; lastName: string | null; school: string | null; photoUrl?: string | null }): Child {
   const name = [record.firstName, record.lastName].filter(Boolean).join(" ");
-  return { id: record.id, name, age: 0, school: record.school ?? "À préciser", color: "sage", initials: name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() };
+  return { id: record.id, name, age: 0, school: record.school ?? "À préciser", color: "sage", initials: name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase(), photoUrl: record.photoUrl ?? null };
 }
 
 function toTask(record: { id: string; title: string; dueAt: Date | null; endAt: Date | null; category: string; priority: "NORMALE" | "IMPORTANT"; status: "TODO" | "IN_PROGRESS" | "DONE"; child: { firstName: string } | null }): Task {
@@ -49,7 +49,7 @@ function toEvent(record: { id: string; title: string; type: string; startsAt: Da
 export const prismaFamilyRepository: FamilyRepository = {
   async getFamily(familyId: string): Promise<Family | null> {
     const record = await prisma.family.findUnique({ where: { id: familyId } });
-    return record ? { id: record.id, name: record.name, address: record.address ?? "", phone: record.phone ?? "", currency: record.currency as Family["currency"] } : null;
+    return record ? { id: record.id, name: record.name, address: record.address ?? "", phone: record.phone ?? "", currency: record.currency as Family["currency"], idDocument: record.idDocument, photoUrl: record.photoUrl, latitude: record.latitude, longitude: record.longitude } : null;
   },
   async getNanny(familyId: string): Promise<Nanny | null> {
     const record = await prisma.nanny.findFirst({ where: { familyId }, orderBy: { createdAt: "asc" } });
@@ -61,7 +61,7 @@ export const prismaFamilyRepository: FamilyRepository = {
   },
   async listNannies(familyId: string) {
     const records = await prisma.nanny.findMany({ where: { familyId }, include: { user: { select: { username: true } } }, orderBy: { createdAt: "asc" } });
-    return records.map((record) => ({ id: record.id, name: `${record.firstName} ${record.lastName}`, email: record.email, username: record.user?.username ?? null, hourlyRate: record.hourlyRate, monthlySalary: record.monthlySalary, weeklyHours: record.weeklyHours, hasAccount: record.userId !== null, startDate: record.startDate ? toIsoDateTimeLocal(record.startDate) : null }));
+    return records.map((record) => ({ id: record.id, name: `${record.firstName} ${record.lastName}`, email: record.email, username: record.user?.username ?? null, phone: record.phone, address: record.address, idDocument: record.idDocument, photoUrl: record.photoUrl, hourlyRate: record.hourlyRate, monthlySalary: record.monthlySalary, weeklyHours: record.weeklyHours, hasAccount: record.userId !== null, startDate: record.startDate ? toIsoDateTimeLocal(record.startDate) : null }));
   },
   async listChildren(familyId: string) {
     const records = await prisma.child.findMany({ where: { familyId }, orderBy: { firstName: "asc" } });

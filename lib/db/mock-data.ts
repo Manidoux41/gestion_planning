@@ -2,11 +2,11 @@ import type { Absence, Child, Family, Nanny, Task, TimeEntry } from "./domain-ty
 
 export type { Absence, Child, Family, Nanny, Task, TimeEntry } from "./domain-types";
 
-export const mockFamily: Family = { id: "family_demo_martin", name: "Famille Martin", address: "12 rue des Lilas, 75011 Paris", phone: "+33 6 12 34 56 78", currency: "USD" };
+export const mockFamily: Family = { id: "family_demo_martin", name: "Famille Martin", address: "12 rue des Lilas, 75011 Paris", phone: "+33 6 12 34 56 78", currency: "USD", idDocument: null, photoUrl: null, latitude: null, longitude: null };
 export const mockNanny: Nanny = { id: "nanny_demo_boneth", name: "Boneth Deap", role: "Nounou principale", phone: "+33 6 45 78 12 09", email: "boneth.deap@example.com", monthlySalary: 330, weeklyHours: 35, startDate: "01 septembre 2025" };
 export const mockChildren: Child[] = [
-  { id: "loukas", name: "Loukas Martin", age: 7, school: "École des Lilas", color: "sage", initials: "LM" },
-  { id: "illyana", name: "Illyana Martin", age: 4, school: "École des Lilas", color: "peach", initials: "IM" },
+  { id: "loukas", name: "Loukas Martin", age: 7, school: "École des Lilas", color: "sage", initials: "LM", photoUrl: null },
+  { id: "illyana", name: "Illyana Martin", age: 4, school: "École des Lilas", color: "peach", initials: "IM", photoUrl: null },
 ];
 export const mockTasks: Task[] = [
   { id: "task-1", title: "Récupérer Loukas à l'école", date: "2026-09-09", time: "15:30", endTime: "16:00", child: "Loukas", category: "École", priority: "Important", done: false },

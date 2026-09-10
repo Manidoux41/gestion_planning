@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { requireFamilyAdmin } from "@/lib/auth/guard";
+import { saveImageUpload, UploadError } from "@/lib/uploads/store";
 
 export type NannyActionState = { ok: boolean; error?: string };
 
@@ -87,5 +88,45 @@ export async function updateNannyRateAction(_prevState: NannyActionState, formDa
   revalidatePath("/nanny");
   revalidatePath("/payroll");
   revalidatePath("/timesheet");
+  return { ok: true };
+}
+
+const profileSchema = z.object({
+  nannyId: z.string().min(1),
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
+  address: z.string().trim().max(200).optional().or(z.literal("")),
+  idDocument: z.string().trim().max(60).optional().or(z.literal("")),
+  contactEmail: z.string().trim().toLowerCase().email("Adresse email invalide.").optional().or(z.literal("")),
+});
+
+export async function updateNannyProfileAction(_prevState: NannyActionState, formData: FormData): Promise<NannyActionState> {
+  const admin = await requireFamilyAdmin();
+  const { photo, ...fields } = Object.fromEntries(formData) as Record<string, FormDataEntryValue>;
+  const parsed = profileSchema.safeParse(fields);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Formulaire invalide." };
+
+  const nanny = await prisma.nanny.findFirst({ where: { id: parsed.data.nannyId, familyId: admin.familyId } });
+  if (!nanny) return { ok: false, error: "Employée introuvable." };
+
+  let photoUrl: string | null = null;
+  try {
+    photoUrl = await saveImageUpload(photo ?? null, "nannies");
+  } catch (error) {
+    return { ok: false, error: error instanceof UploadError ? error.message : "Échec de l'envoi de la photo." };
+  }
+
+  await prisma.nanny.update({
+    where: { id: nanny.id },
+    data: {
+      phone: parsed.data.phone || null,
+      address: parsed.data.address || null,
+      idDocument: parsed.data.idDocument || null,
+      email: parsed.data.contactEmail || null,
+      ...(photoUrl ? { photoUrl } : {}),
+    },
+  });
+
+  revalidatePath("/nanny");
+  revalidatePath("/profile");
   return { ok: true };
 }
