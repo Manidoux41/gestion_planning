@@ -110,7 +110,12 @@ export default async function Home() {
     {!isAdmin && <section className="lower-grid" style={{ marginTop: 15 }}>
       <article className="payroll-card">
         <div className="card-heading"><div><p className="eyebrow">{t("dashboard.myPayslip")}</p><h2>{t("dashboard.estimatedPay")}</h2></div></div>
-        {payroll ? <div className="payroll-lines"><div><span>{t("dashboard.baseSalary")} <small>{payroll.normalHours.toFixed(2)}h</small></span><strong>{money(payroll.baseSalary)}</strong></div><div><span>{t("dashboard.overtime")} <small>{payroll.overtimeHours.toFixed(2)}h</small></span><strong>{money(payroll.overtimePay)}</strong></div><div className="total-line"><span>{t("dashboard.total")}</span><strong>{money(payroll.total)}</strong></div></div> : <p className="page-subtitle">{t("dashboard.noContract")}</p>}
+        {payroll ? <div className="payroll-lines">
+          <div><span>{t("dashboard.baseSalary")} <small>{payroll.normalHours.toFixed(2)}h</small></span><strong>{money(payroll.baseSalary)}</strong></div>
+          <div><span>{t("dashboard.overtime")} <small>{payroll.overtimeHours.toFixed(2)}h</small></span><strong>{money(payroll.overtimePay)}</strong></div>
+          {payroll.salaryAdvance > 0 && <div><span>{t("payroll.salaryAdvance")} <small>Déduite du salaire</small></span><strong style={{ color: "#b36551" }}>-{money(payroll.salaryAdvance)}</strong></div>}
+          <div className="total-line"><span>{t("dashboard.total")}</span><strong style={{ color: payroll.total < 0 ? "#b3543d" : undefined }}>{money(payroll.total)}</strong></div>
+        </div> : <p className="page-subtitle">{t("dashboard.noContract")}</p>}
         {payroll && nanny && <PayslipDownloadButton payroll={payroll} nannyName={nanny.name} familyName={user.familyName} />}
       </article>
       <aside className="payroll-total">

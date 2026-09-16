@@ -111,6 +111,7 @@ model Family {
   absences      Absence[]
   payrolls      PayrollPeriod[]
   payments      Payment[]
+  salaryAdvances SalaryAdvance[]
 
   @@index([ownerId])
 }
@@ -142,6 +143,7 @@ model Nanny {
   breaks        Break[]
   absences      Absence[]
   payrollItems  PayrollItem[]
+  salaryAdvances SalaryAdvance[]
 
   @@index([familyId])
 }
@@ -319,4 +321,20 @@ model Payment {
   payrollPeriod   PayrollPeriod @relation(fields: [payrollPeriodId], references: [id], onDelete: Cascade)
 
   @@index([familyId, paidOn])
+}
+
+model SalaryAdvance {
+  id        String   @id @default(cuid())
+  familyId  String
+  nannyId   String
+  amount    Float
+  date      DateTime @default(now())
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  family    Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  nanny     Nanny    @relation(fields: [nannyId], references: [id], onDelete: Cascade)
+
+  @@index([familyId, date])
+  @@index([nannyId, date])
 }

@@ -52,12 +52,20 @@ export function PayslipDownloadButton({ payroll, nannyName, familyName }: { payr
     pdf.text(money(payroll.baseSalary), 160, top + 12);
     pdf.text(`Heures supplementaires (${payroll.overtimeHours.toFixed(2)} h)`, left, top + 21);
     pdf.text(money(payroll.overtimePay), 160, top + 21);
+
+    let offset = 21;
+    if (payroll.salaryAdvance > 0) {
+      offset += 9;
+      pdf.text("Avance sur salaire", left, top + offset);
+      pdf.text(`-${money(payroll.salaryAdvance)}`, 160, top + offset);
+    }
+
     pdf.setDrawColor(225, 232, 226);
-    pdf.line(left, top + 30, 190, top + 30);
+    pdf.line(left, top + offset + 9, 190, top + offset + 9);
     pdf.setTextColor(49, 91, 76);
     pdf.setFontSize(13);
-    pdf.text("Total estime a payer", left, top + 42);
-    pdf.text(money(payroll.total), 160, top + 42);
+    pdf.text("Total estime a payer", left, top + offset + 21);
+    pdf.text(money(payroll.total), 160, top + offset + 21);
 
     pdf.setFontSize(9);
     pdf.setTextColor(130, 143, 134);

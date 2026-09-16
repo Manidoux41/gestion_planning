@@ -91,3 +91,23 @@ button { font: inherit; }
 .profile-photo-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
 .settings-panel { display: grid; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 20px; background: #fff; }
 .map-embed { width: 100%; height: 240px; border: 1px solid var(--line); border-radius: 12px; }
+
+.advance-section { margin-top: 20px; padding-top: 18px; border-top: 1px dashed var(--line); }
+.advance-form { display: grid; gap: 12px; margin-top: 12px; }
+.advance-input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.advance-input-row label { display: grid; gap: 5px; color: #5a6b60; font-size: 11px; font-weight: 600; }
+.advance-input-row input { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: #3b4c41; outline-color: #8cb195; font-size: 13px; }
+.advance-badge-live { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; color: #b3543d; background: #fbeee9; border: 1px solid #f0d3c8; padding: 8px 12px; border-radius: 8px; margin-top: 4px; }
+.advances-list { display: grid; gap: 8px; margin-top: 12px; }
+.advance-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #fcfdfc; border: 1px solid #eef2ee; border-radius: 8px; padding: 10px 14px; font-size: 12px; }
+.advance-item-info { display: grid; gap: 2px; }
+.advance-item-info b { color: #3b4c41; font-size: 12px; }
+.advance-item-info small { color: #9aa59d; font-size: 10px; }
+.advance-item-amount { display: flex; align-items: center; gap: 10px; }
+.advance-item-amount strong { color: #b3543d; font-size: 13px; font-weight: 700; }
+.advance-item-amount button { border: 0; background: transparent; color: #b3543d; cursor: pointer; padding: 4px; border-radius: 6px; display: grid; place-items: center; }
+.advance-item-amount button:hover { background: #fbeee9; }
+.payroll-subtotal-line { background: #f7faf7; border-radius: 8px; padding: 10px 12px !important; margin: 8px 0 !important; border: 1px solid #e3ede5 !important; font-weight: 600; }
+.payroll-advance-line { color: #b3543d !important; font-weight: 600; }
+.payroll-advance-line strong { color: #b3543d !important; }
+

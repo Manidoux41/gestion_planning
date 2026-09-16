@@ -9,7 +9,15 @@ function money(value: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "USD" }).format(value);
 }
 
-export function PayrollActions({ payroll }: { payroll: PayrollSummary }) {
+export function PayrollActions({
+  payroll,
+  nannyName = "Boneth Deap",
+  familyName = "Famille Martin",
+}: {
+  payroll: PayrollSummary;
+  nannyName?: string;
+  familyName?: string;
+}) {
   const [isPrepared, setIsPrepared] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -40,8 +48,8 @@ export function PayrollActions({ payroll }: { payroll: PayrollSummary }) {
     pdf.text("Employée", 110, top + 12);
     pdf.setFontSize(10);
     pdf.setTextColor(105, 119, 109);
-    pdf.text("Famille Martin", left, top + 20);
-    pdf.text("Boneth Deap", 110, top + 20);
+    pdf.text(familyName, left, top + 20);
+    pdf.text(nannyName, 110, top + 20);
     pdf.text("12 rue des Lilas, Paris", left, top + 27);
     pdf.text("Nounou principale", 110, top + 27);
 
@@ -51,20 +59,42 @@ export function PayrollActions({ payroll }: { payroll: PayrollSummary }) {
     pdf.text("Detail du calcul", left, top);
     pdf.setFontSize(10);
     pdf.setTextColor(105, 119, 109);
-    pdf.text(`Base mensuelle (${payroll.normalHours.toFixed(2)} h)`, left, top + 12);
-    pdf.text(money(payroll.baseSalary), 160, top + 12);
-    pdf.text(`Heures supplementaires (${payroll.overtimeHours.toFixed(2)} h)`, left, top + 21);
-    pdf.text(money(payroll.overtimePay), 160, top + 21);
-    pdf.text("Primes", left, top + 30);
-    pdf.text(money(payroll.bonuses), 160, top + 30);
-    pdf.text("Retenues", left, top + 39);
-    pdf.text(`-${money(payroll.deductions)}`, 160, top + 39);
+
+    let currentY = top + 12;
+    pdf.text(`Base mensuelle (${payroll.normalHours.toFixed(2)} h)`, left, currentY);
+    pdf.text(money(payroll.baseSalary), 160, currentY);
+
+    currentY += 9;
+    pdf.text(`Heures supplementaires (${payroll.overtimeHours.toFixed(2)} h)`, left, currentY);
+    pdf.text(money(payroll.overtimePay), 160, currentY);
+
+    if (payroll.bonuses > 0) {
+      currentY += 9;
+      pdf.text("Primes", left, currentY);
+      pdf.text(money(payroll.bonuses), 160, currentY);
+    }
+
+    if (payroll.deductions > 0) {
+      currentY += 9;
+      pdf.text("Retenues", left, currentY);
+      pdf.text(`-${money(payroll.deductions)}`, 160, currentY);
+    }
+
+    if (payroll.salaryAdvance > 0) {
+      currentY += 9;
+      pdf.text("Avance sur salaire", left, currentY);
+      pdf.text(`-${money(payroll.salaryAdvance)}`, 160, currentY);
+    }
+
+    currentY += 7;
     pdf.setDrawColor(225, 232, 226);
-    pdf.line(left, top + 46, 190, top + 46);
+    pdf.line(left, currentY, 190, currentY);
+
+    currentY += 12;
     pdf.setTextColor(49, 91, 76);
     pdf.setFontSize(13);
-    pdf.text("Total estime a payer", left, top + 58);
-    pdf.text(money(payroll.total), 160, top + 58);
+    pdf.text("Total estime a payer", left, currentY);
+    pdf.text(money(payroll.total), 160, currentY);
 
     pdf.setFontSize(9);
     pdf.setTextColor(130, 143, 134);
