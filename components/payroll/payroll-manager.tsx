@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { Check, DollarSign, Download, FileText, LockKeyhole, Plus, Trash2, Zap } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { createSalaryAdvanceAction, deleteSalaryAdvanceAction } from "@/app/actions/payroll";
 import type { PayrollSummary } from "@/lib/payroll";
+import { toIsoDate } from "@/lib/utils/dates";
 
 function money(value: number) {
   return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "USD" }).format(value);
@@ -18,6 +19,8 @@ export type SerializedSalaryAdvance = {
 };
 
 type PayrollManagerProps = {
+  selectedMonth: string;
+  periodNavigation: ReactNode;
   nanny: {
     id: string;
     name: string;
@@ -34,6 +37,8 @@ type PayrollManagerProps = {
 };
 
 export function PayrollManager({
+  selectedMonth,
+  periodNavigation,
   nanny,
   familyName,
   initialPayroll,
@@ -45,7 +50,8 @@ export function PayrollManager({
   const [advanceNotesInput, setAdvanceNotesInput] = useState("");
   const [advanceDateInput, setAdvanceDateInput] = useState(() => {
     const now = new Date();
-    return now.toISOString().split("T")[0];
+    const today = toIsoDate(now);
+    return today.startsWith(selectedMonth) ? today : `${selectedMonth}-01`;
   });
   const [isPending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
@@ -223,6 +229,8 @@ export function PayrollManager({
           {isPrepared && <p className="action-success" role="status">La fiche est prête à être vérifiée.</p>}
         </div>
       </div>
+
+      {periodNavigation}
 
       <div className="payroll-period">
         <div>

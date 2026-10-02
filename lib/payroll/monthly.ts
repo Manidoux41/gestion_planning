@@ -26,11 +26,14 @@ export type MonthlyPayroll = {
  * et en déduisant les éventuelles avances sur salaire accordées pendant le mois.
  */
 export async function getCurrentMonthPayroll(familyId: string, nannyId: string, overtimeRate = 1.25): Promise<MonthlyPayroll | null> {
+  return getMonthPayroll(familyId, nannyId, getReferenceToday(), overtimeRate);
+}
+
+export async function getMonthPayroll(familyId: string, nannyId: string, month: Date, overtimeRate = 1.25): Promise<MonthlyPayroll | null> {
   const nannyRecord = await prisma.nanny.findUnique({ where: { id: nannyId } });
   if (!nannyRecord) return null;
 
-  const today = getReferenceToday();
-  const { start: monthStart, end: monthEnd } = getMonthBounds(today);
+  const { start: monthStart, end: monthEnd } = getMonthBounds(month);
   const periodStart = nannyRecord.startDate && nannyRecord.startDate > monthStart ? nannyRecord.startDate : monthStart;
 
   const [entries, advances] = await Promise.all([
