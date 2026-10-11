@@ -7,6 +7,7 @@ import { formatPayrollMonth, getPayrollMonth } from "@/lib/payroll/period";
 import { requireFamilyAdmin } from "@/lib/auth/guard";
 import { prismaFamilyRepository } from "@/lib/db/prisma-repository";
 import { translator } from "@/lib/i18n";
+import { toIsoDate } from "@/lib/utils/dates";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -81,8 +82,9 @@ export default async function PayrollPage({
           }}
           familyName={user.familyName}
           initialPayroll={monthly.payroll}
-          periodStart={monthly.periodStart.toISOString()}
-          periodEnd={monthly.periodEnd.toISOString()}
+          workedHoursByDay={monthly.workedHoursByDay.map(({ date, hours }) => ({ date: toIsoDate(date), hours }))}
+          periodStart={toIsoDate(monthly.periodStart)}
+          periodEnd={toIsoDate(monthly.periodEnd)}
           advances={serializedAdvances}
         />
       </div>

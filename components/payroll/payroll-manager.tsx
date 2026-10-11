@@ -21,6 +21,7 @@ export type SerializedSalaryAdvance = {
 type PayrollManagerProps = {
   selectedMonth: string;
   periodNavigation: ReactNode;
+  workedHoursByDay: { date: string; hours: number }[];
   nanny: {
     id: string;
     name: string;
@@ -39,6 +40,7 @@ type PayrollManagerProps = {
 export function PayrollManager({
   selectedMonth,
   periodNavigation,
+  workedHoursByDay,
   nanny,
   familyName,
   initialPayroll,
@@ -51,7 +53,7 @@ export function PayrollManager({
   const [advanceDateInput, setAdvanceDateInput] = useState(() => {
     const now = new Date();
     const today = toIsoDate(now);
-    return today.startsWith(selectedMonth) ? today : `${selectedMonth}-01`;
+    return today >= periodStart && today < periodEnd ? today : periodStart;
   });
   const [isPending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
@@ -77,8 +79,15 @@ export function PayrollManager({
     total: liveNetToPay,
   };
 
-  const startDateFormatted = new Date(periodStart).toLocaleDateString("fr-FR");
-  const endDateFormatted = new Date(new Date(periodEnd).getTime() - 86_400_000).toLocaleDateString("fr-FR");
+  const startDateFormatted = new Date(`${periodStart}T12:00:00`).toLocaleDateString("fr-FR");
+  const lastPeriodDate = new Date(`${periodEnd}T12:00:00`);
+  lastPeriodDate.setDate(lastPeriodDate.getDate() - 1);
+  const endDateFormatted = lastPeriodDate.toLocaleDateString("fr-FR");
+  const totalWorkedHours = workedHoursByDay.reduce((sum, day) => sum + day.hours, 0);
+
+  function formatWorkedDate(date: string, options: Intl.DateTimeFormatOptions) {
+    return new Date(`${date}T12:00:00`).toLocaleDateString("fr-FR", options);
+  }
 
   async function handleAddAdvance(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -87,6 +96,7 @@ export function PayrollManager({
 
     const formData = new FormData(e.currentTarget);
     formData.set("nannyId", nanny.id);
+    formData.set("payrollMonth", selectedMonth);
 
     startTransition(async () => {
       const res = await createSalaryAdvanceAction({ ok: false }, formData);
@@ -191,11 +201,68 @@ export function PayrollManager({
     pdf.text("Total net a verser", left, currentY);
     pdf.text(money(livePayroll.total), 160, currentY);
 
+    currentY += 16;
+    if (currentY > 245) {
+      pdf.addPage();
+      currentY = 24;
+    }
+
+    function drawDailyHoursHeader(continued = false) {
+      pdf.setTextColor(55, 72, 62);
+      pdf.setFontSize(11);
+      pdf.text(continued ? "Heures travaillees par jour (suite)" : "Heures travaillees par jour", left, currentY);
+      currentY += 9;
+      pdf.setFontSize(9);
+      pdf.text("Date", left, currentY);
+      pdf.text("Heures validees", 160, currentY);
+      currentY += 5;
+      pdf.setDrawColor(225, 232, 226);
+      pdf.line(left, currentY, 190, currentY);
+      currentY += 7;
+    }
+
+    drawDailyHoursHeader();
+    if (workedHoursByDay.length === 0) {
+      pdf.setTextColor(105, 119, 109);
+      pdf.setFontSize(9);
+      pdf.text("Aucune heure validee sur cette periode.", left, currentY);
+      currentY += 8;
+    } else {
+      for (const day of workedHoursByDay) {
+        if (currentY > 275) {
+          pdf.addPage();
+          currentY = 24;
+          drawDailyHoursHeader(true);
+        }
+        pdf.setTextColor(105, 119, 109);
+        pdf.setFontSize(9);
+        pdf.text(formatWorkedDate(day.date, { day: "2-digit", month: "2-digit", year: "numeric" }), left, currentY);
+        pdf.text(`${day.hours.toFixed(2)} h`, 160, currentY);
+        currentY += 7;
+      }
+      if (currentY > 275) {
+        pdf.addPage();
+        currentY = 24;
+      }
+      pdf.setDrawColor(225, 232, 226);
+      pdf.line(left, currentY, 190, currentY);
+      currentY += 7;
+      pdf.setTextColor(49, 91, 76);
+      pdf.setFontSize(10);
+      pdf.text(`Total des heures validees : ${totalWorkedHours.toFixed(2)} h`, left, currentY);
+      currentY += 12;
+    }
+
+    if (currentY > 260) {
+      pdf.addPage();
+      currentY = 24;
+    }
     pdf.setFontSize(9);
     pdf.setTextColor(130, 143, 134);
-    pdf.text(`Contrat de reference : ${nanny.weeklyHours} h/semaine, ${nanny.monthlySalary} $/mois.`, left, 260);
-    pdf.text("Ce document est un calcul interne et ne constitue pas automatiquement une fiche de paie legale.", left, 268);
-    pdf.save(`releve-remuneration-${nanny.name.toLowerCase().replace(/\s+/g, "-")}.pdf`);
+    pdf.text(`Contrat de reference : ${nanny.weeklyHours} h/semaine, ${nanny.monthlySalary} $/mois.`, left, currentY);
+    currentY += 6;
+    pdf.text("Ce document est un calcul interne et ne constitue pas automatiquement une fiche de paie legale.", left, currentY);
+    pdf.save(`releve-remuneration-${nanny.name.toLowerCase().replace(/\s+/g, "-")}-${selectedMonth}.pdf`);
     setIsDownloading(false);
   }
 
@@ -328,6 +395,33 @@ export function PayrollManager({
             </div>
           </article>
 
+          <article className="payroll-card">
+            <div className="card-heading">
+              <div>
+                <p className="eyebrow">Pointages validés</p>
+                <h2>Heures effectuées par jour</h2>
+              </div>
+              <strong style={{ color: "var(--green-dark)", fontSize: 14 }}>{totalWorkedHours.toFixed(2)} h</strong>
+            </div>
+
+            {workedHoursByDay.length === 0 ? (
+              <p className="page-subtitle" style={{ marginTop: 18 }}>Aucune heure validée sur cette période.</p>
+            ) : (
+              <div role="table" aria-label="Heures validées par jour" style={{ marginTop: 18 }}>
+                <div role="row" style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 12, padding: "0 0 9px", borderBottom: "1px solid var(--line)", color: "#8b978f", fontSize: 10 }}>
+                  <span role="columnheader">Date</span>
+                  <span role="columnheader" style={{ textAlign: "right" }}>Heures</span>
+                </div>
+                {workedHoursByDay.map((day) => (
+                  <div key={day.date} role="row" style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 12, padding: "10px 0", borderBottom: "1px solid #edf0ed", color: "#536158", fontSize: 12 }}>
+                    <time role="cell" dateTime={day.date}>{formatWorkedDate(day.date, { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</time>
+                    <strong role="cell" style={{ textAlign: "right", color: "#4b765f" }}>{day.hours.toFixed(2)} h</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+          </article>
+
           {/* Salary Advance Management Card (Family / Admin Only) */}
           <article className="payroll-card">
             <div className="card-heading">
@@ -366,6 +460,8 @@ export function PayrollManager({
                   <input
                     type="date"
                     name="date"
+                    min={periodStart}
+                    max={toIsoDate(lastPeriodDate)}
                     value={advanceDateInput}
                     onChange={(e) => setAdvanceDateInput(e.target.value)}
                   />

@@ -10,9 +10,9 @@ import { MobileAccountMenu } from "@/components/layout/mobile-account-menu";
 function getNavigation(t: (key: string) => string) {
   const admin = [
     { label: t("nav.dashboard"), href: "/", icon: Home },
+    { label: t("nav.payroll"), href: "/payroll", icon: FileText },
     { label: t("nav.schedule"), href: "/schedule", icon: CalendarDays },
     { label: t("nav.timesheet"), href: "/timesheet", icon: Clock3 },
-    { label: t("nav.payroll"), href: "/payroll", icon: FileText },
     { label: t("nav.tasks"), href: "/tasks", icon: Check },
     { label: t("nav.children"), href: "/children", icon: Users },
     { label: t("nav.nanny"), href: "/nanny", icon: Users },
